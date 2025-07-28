@@ -1,0 +1,200 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test and Build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+          
+    - name: Install Whisper.cpp
+      run: |
+        git clone https://github.com/ggerganov/whisper.cpp.git
+        cd whisper.cpp
+        make
+        bash ./models/download-ggml-model.sh tiny
+        cd ..
+        echo "WHISPER_CPP_PATH=$(pwd)/whisper.cpp" >> $GITHUB_ENV
+        
+    - name: Setup project
+      run: |
+        make setup-quick
+        
+    - name: Build Docker image
+      run: |
+        make build
+        
+    - name: Test application
+      run: |
+        make test-help
+        
+    - name: Test FFmpeg
+      run: |
+        make test-ffmpeg
+        
+    - name: Test Whisper.cpp
+      run: |
+        make test-whisper
+        
+    - name: Validate project
+      run: |
+        make validate
+        
+    - name: Check documentation
+      run: |
+        # Check if all documentation files exist
+        test -f README.md
+        test -f DEVELOPER_GUIDE.md
+        test -f QUICK_REFERENCE.md
+        test -f TROUBLESHOOTING.md
+        test -f PROJECT_OVERVIEW.md
+        test -f MAKEFILE_GUIDE.md
+        test -f CONTRIBUTING.md
+        test -f CHANGELOG.md
+        test -f LICENSE
+        echo "All documentation files present"
+        
+    - name: Check project structure
+      run: |
+        # Verify essential files exist
+        test -f Dockerfile
+        test -f docker-compose.yml
+        test -f Makefile
+        test -f requirements.txt
+        test -f transcriber.py
+        test -f config.py
+        test -d input
+        test -d output
+        test -d temp
+        echo "Project structure verified"
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security Scan
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  docker:
+    runs-on: ubuntu-latest
+    name: Docker Build and Test
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Install Whisper.cpp
+      run: |
+        git clone https://github.com/ggerganov/whisper.cpp.git
+        cd whisper.cpp
+        make
+        bash ./models/download-ggml-model.sh tiny
+        cd ..
+        echo "WHISPER_CPP_PATH=$(pwd)/whisper.cpp" >> $GITHUB_ENV
+        
+    - name: Setup project
+      run: |
+        make setup-quick
+        
+    - name: Build and test Docker image
+      run: |
+        make build
+        make test-help
+        make test-ffmpeg
+        make test-whisper
+        
+    - name: Test Docker container
+      run: |
+        # Test container startup
+        docker-compose run --rm transcriber echo "Container test successful"
+        
+    - name: Test volume mounts
+      run: |
+        # Test volume mounting
+        docker-compose run --rm transcriber ls -la /app/input /app/output /app/temp
+        docker-compose run --rm transcriber ls -la /opt/whisper.cpp
+
+  documentation:
+    runs-on: ubuntu-latest
+    name: Documentation Check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check documentation links
+      run: |
+        # Check for broken internal links in markdown files
+        find . -name "*.md" -exec grep -l "\[.*\](" {} \; | while read file; do
+          echo "Checking links in $file"
+          grep -o "\[.*\]([^)]*)" "$file" | while read link; do
+            url=$(echo "$link" | sed 's/.*(\([^)]*\)).*/\1/')
+            if [[ $url == \#* ]]; then
+              echo "Internal link: $url"
+            elif [[ $url == http* ]]; then
+              echo "External link: $url"
+            else
+              echo "Local file: $url"
+              if [[ ! -f "$url" ]]; then
+                echo "WARNING: File not found: $url in $file"
+              fi
+            fi
+          done
+        done
+        
+    - name: Check file permissions
+      run: |
+        # Ensure scripts are executable
+        test -x setup-guide.sh
+        test -x docker-setup.sh
+        test -x docker-batch.sh
+        echo "All scripts are executable"
+        
+    - name: Validate Makefile
+      run: |
+        # Test Makefile help command
+        make help > /dev/null
+        echo "Makefile is valid" 

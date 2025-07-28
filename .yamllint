@@ -1,0 +1,38 @@
+extends: default
+
+rules:
+  # 80 chars should be enough, but don't fail if a line is longer
+  line-length: disable
+  
+  # Allow both `oneline` and `folded` styles
+  comments-indentation: disable
+  
+  # Allow trailing spaces in empty lines
+  trailing-spaces: disable
+  
+  # Allow document start
+  document-start: disable
+  
+  # Allow multiple documents
+  document-end: disable
+  
+  # Allow flow style
+  flow-sequence-bracket-spacing: disable
+  
+  # Allow flow mapping
+  flow-mapping-curly-spacing: disable
+  
+  # Allow indentation
+  indentation: disable
+  
+  # Allow key ordering
+  key-ordering: disable
+  
+  # Allow new line at end
+  new-line-at-end-of-file: disable
+  
+  # Allow new lines
+  new-lines: disable
+  
+  # Allow trailing spaces
+  trailing-spaces: disable 

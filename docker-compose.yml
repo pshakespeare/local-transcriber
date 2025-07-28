@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  transcriber:
+    build: .
+    container_name: local-transcriber
+    volumes:
+      # Mount input directory for video files
+      - ./input:/app/input:ro
+      # Mount output directory for transcriptions
+      - ./output:/app/output
+      # Mount temp directory for intermediate files
+      - ./temp:/app/temp
+      # Mount source code for development
+      - ./src:/app/src
+      # Mount user's Whisper.cpp installation
+      - ${WHISPER_CPP_PATH:-./whisper.cpp}:/opt/whisper.cpp
+    environment:
+      # Set default paths for the container
+      - WHISPER_CPP_DIR=/opt/whisper.cpp
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+    # Run as interactive shell for development
+    stdin_open: true
+    tty: true
+    # Restart policy
+    restart: unless-stopped
+    # Resource limits (adjust based on your system)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+volumes:
+  input:
+  output:
+  temp: 
