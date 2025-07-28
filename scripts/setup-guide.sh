@@ -82,7 +82,7 @@ check_system_requirements() {
     fi
     
     # Check disk space
-    DISK_GB=$(df -BG . | awk 'NR==2 {print $4}' | sed 's/G//')
+    DISK_GB=$(df -BG  | awk 'NR==2 {print $4}' | sed 's/G//')
     if [ "$DISK_GB" -ge 5 ]; then
         print_success "Disk space: ${DISK_GB}GB available (Minimum 5GB required)"
     else
@@ -313,7 +313,7 @@ setup_project() {
     
     # Test installation
     print_status "Testing installation..."
-    docker-compose run --rm transcriber python3 transcriber.py --help > /dev/null 2>&1
+    docker-compose run --rm transcriber python3 -m src.transcriber --help > /dev/null 2>&1
     
     if [ $? -eq 0 ]; then
         print_success "Installation test passed!"
@@ -329,18 +329,18 @@ show_usage_examples() {
     
     echo ""
     echo "Basic transcription:"
-    echo "  docker-compose run --rm transcriber python3 transcriber.py \\"
-    echo "    -i /app/input/my_video.mp4 \\"
-    echo "    -m /opt/whisper.cpp/models/ggml-base.bin \\"
-    echo "    -o /app/output/transcript.txt"
+echo "  docker-compose run --rm transcriber python3 -m src.transcriber \\"
+echo "    -i /app/input/my_video.mp4 \\"
+echo "    -m /opt/whisper.cpp/models/ggml-base.bin \\"
+echo "    -o /app/output/transcript.txt"
     echo ""
     
     echo "Generate subtitles:"
-    echo "  docker-compose run --rm transcriber python3 transcriber.py \\"
-    echo "    -i /app/input/my_video.mp4 \\"
-    echo "    -m /opt/whisper.cpp/models/ggml-base.bin \\"
-    echo "    -f srt \\"
-    echo "    -o /app/output/my_video.srt"
+echo "  docker-compose run --rm transcriber python3 -m src.transcriber \\"
+echo "    -i /app/input/my_video.mp4 \\"
+echo "    -m /opt/whisper.cpp/models/ggml-base.bin \\"
+echo "    -f srt \\"
+echo "    -o /app/output/my_video.srt"
     echo ""
     
     echo "Batch processing:"
