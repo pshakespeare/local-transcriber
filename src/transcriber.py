@@ -59,12 +59,27 @@ class VideoTranscriber:
                 return container_path
         
         possible_paths = [
+            # Container paths (preferred) - whisper-cli first
+            "/opt/whisper.cpp/whisper-cli",  # Container path (preferred)
+            "/opt/whisper.cpp/build/bin/whisper-cli",  # Alternative container path
+            # Local development paths
+            "./whisper.cpp/whisper-cli",
+            "./whisper.cpp/build/bin/whisper-cli",
+            "../whisper.cpp/whisper-cli",
+            "../whisper.cpp/build/bin/whisper-cli",
+            "~/whisper.cpp/whisper-cli",
+            "~/whisper.cpp/build/bin/whisper-cli",
+            # Fallback to main executable (deprecated but still works)
+            "/opt/whisper.cpp/main",  # Container fallback
+            "/opt/whisper.cpp/build/bin/main",  # Container fallback
             "./whisper.cpp/main",
+            "./whisper.cpp/build/bin/main",
             "../whisper.cpp/main",
+            "../whisper.cpp/build/bin/main",
             "~/whisper.cpp/main",
+            "~/whisper.cpp/build/bin/main",
             "/usr/local/bin/whisper-main",
-            "/opt/whisper.cpp/main",
-            "/opt/whisper.cpp/main"  # Container path
+            "/opt/whisper.cpp/whisper-main"
         ]
         
         for path in possible_paths:
@@ -99,7 +114,8 @@ class VideoTranscriber:
                 f"./whisper.cpp/models/{model_filename}",
                 f"~/whisper.cpp/models/{model_filename}",
                 f"/opt/whisper.cpp/models/{model_filename}",
-                f"/usr/local/whisper.cpp/models/{model_filename}"
+                f"/usr/local/whisper.cpp/models/{model_filename}",
+                f"/app/input/{model_filename}"  # Allow models in input directory
             ]
             
             for path in possible_paths:
@@ -360,8 +376,8 @@ def list_models():
     
     console.print(table)
     console.print("\n[bold]Usage:[/bold]")
-    console.print("• Use model name: python3 -m src.transcriber -i video.mp4 -m base")
-    console.print("• Use custom path: python3 -m src.transcriber -i video.mp4 -m /path/to/model.bin")
+    console.print("• Use model name: python3 -m src.transcriber transcribe -i video.mp4 -m base")
+    console.print("• Use custom path: python3 -m src.transcriber transcribe -i video.mp4 -m /path/to/model.bin")
 
 @click.group()
 def cli():

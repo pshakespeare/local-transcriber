@@ -346,14 +346,14 @@ show_usage_examples() {
     
     echo ""
     echo "Basic transcription:"
-echo "  docker-compose run --rm transcriber python3 -m src.transcriber \\"
+echo "  docker-compose run --rm transcriber python3 -m src.transcriber transcribe \\"
 echo "    -i /app/input/my_video.mp4 \\"
 echo "    -m /opt/whisper.cpp/models/ggml-base.bin \\"
 echo "    -o /app/output/transcript.txt"
     echo ""
     
     echo "Generate subtitles:"
-echo "  docker-compose run --rm transcriber python3 -m src.transcriber \\"
+echo "  docker-compose run --rm transcriber python3 -m src.transcriber transcribe \\"
 echo "    -i /app/input/my_video.mp4 \\"
 echo "    -m /opt/whisper.cpp/models/ggml-base.bin \\"
 echo "    -f srt \\"

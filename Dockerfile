@@ -30,8 +30,18 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Create Whisper.cpp directory (user will mount their installation)
-RUN mkdir -p ${WHISPER_CPP_DIR}/models
+# Clone and build Whisper.cpp
+RUN git clone https://github.com/ggerganov/whisper.cpp.git ${WHISPER_CPP_DIR} \
+    && cd ${WHISPER_CPP_DIR} \
+    && cmake -B build \
+    && cmake --build build --parallel \
+    && ln -sf ${WHISPER_CPP_DIR}/build/bin/main ${WHISPER_CPP_DIR}/main \
+    && ln -sf ${WHISPER_CPP_DIR}/build/bin/whisper-cli ${WHISPER_CPP_DIR}/whisper-cli
+
+# Create models directory and download base model
+RUN mkdir -p ${WHISPER_CPP_DIR}/models \
+    && cd ${WHISPER_CPP_DIR} \
+    && bash ./models/download-ggml-model.sh base
 
 # Copy application files
 COPY src/ ./src/

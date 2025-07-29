@@ -1,150 +1,132 @@
 # Local Video Transcriber
 
-A containerized Python application for transcribing local video files using Whisper.cpp and FFmpeg. Get up and running in minutes with Docker Compose and Make commands.
+A containerized Python application for transcribing local video files using Whisper.cpp and FFmpeg. Get up and running in minutes with Docker - no complex setup required!
 
-## 🚀 Quick Start (5 minutes)
+## 🚀 Quick Start (3 minutes)
 
 ### 1. Prerequisites
 ```bash
-# Verify you have Docker and Make
+# Verify you have Docker and Make installed
 docker --version && docker-compose --version && make --version
 ```
 
-### 2. Install Whisper.cpp
-```bash
-# Clone and build Whisper.cpp
-git clone https://github.com/ggerganov/whisper.cpp.git
-cd whisper.cpp
-make
-bash ./models/download-ggml-model.sh base
-cd ..
-```
-
-### 3. Setup Project
+### 2. Setup Project
 ```bash
 # Clone this repository
 git clone <repository-url>
 cd local-transcriber
 
-# Set Whisper.cpp path and run setup
-export WHISPER_CPP_PATH=$(pwd)/../whisper.cpp
+# Run the complete setup (builds Docker image with Whisper.cpp included)
 make setup
 ```
 
-### 4. Transcribe Your First Video
+### 3. Transcribe Your First Video
 ```bash
 # Add your video to the input directory
 cp /path/to/your/video.mp4 input/
 
-# Transcribe using Make (easiest)
+# Transcribe using Make (easiest way)
 make transcribe VIDEO=video.mp4 MODEL=base
 
-# Or using Docker directly
-docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
-    -i /app/input/video.mp4 -m base -o /app/output/transcript.txt
+# Check your results
+ls -la output/
 ```
+
+**That's it!** Your transcription will be saved in the `output/` directory.
 
 ## 🎯 What It Does
 
-- **Extracts audio** from video files (MP4, M4A, AVI, MOV, MKV) using FFmpeg
-- **Transcribes audio** using Whisper.cpp (local, no API calls)
-- **Supports multiple formats**: TXT, SRT, VTT, JSON
-- **Runs in Docker** for consistent, portable deployment
-- **Supports 99+ languages** with automatic detection
-- **Processes both video and audio files** directly
+- **🎬 Extracts audio** from video files (MP4, M4A, AVI, MOV, MKV, WebM) using FFmpeg
+- **🎤 Transcribes audio** using Whisper.cpp (local, no API calls, no internet required)
+- **📝 Supports multiple formats**: TXT, SRT, VTT, JSON
+- **🐳 Runs in Docker** for consistent, portable deployment
+- **🌍 Supports 99+ languages** with automatic detection
+- **⚡ Fast and efficient** - processes files locally
 
 ## 🔧 Essential Commands
+
+### Quick Transcription
+```bash
+# Basic transcription (recommended for most users)
+make transcribe VIDEO=my_video.mp4 MODEL=base
+
+# Generate subtitles for video editing
+make transcribe-srt VIDEO=my_video.mp4 MODEL=small
+
+# High-quality transcription
+make transcribe VIDEO=my_video.mp4 MODEL=medium
+
+# Batch process all videos in input folder
+make transcribe-batch
+```
 
 ### Setup & Management
 ```bash
 make help                    # Show all available commands
-make setup                   # Complete project setup
-make build                   # Build Docker image
+make setup                   # Complete project setup (builds everything)
+make build                   # Rebuild Docker image
 make clean                   # Clean temporary files
-```
-
-### Transcription Commands
-```bash
-# Basic transcription
-make transcribe VIDEO=my_video.mp4 MODEL=base
-
-# Generate subtitles
-make transcribe-srt VIDEO=my_video.mp4 MODEL=small
-
-# Verbose output
-make transcribe-verbose VIDEO=my_video.mp4 MODEL=medium
-
-# Batch process all videos
-make transcribe-batch
-```
-
-### Model Management
-```bash
 make show-models             # List available models
-make download-model MODEL=small  # Download specific model
 ```
 
 ## 🎯 Model Selection
 
 Choose the right model for your needs:
 
-| Model | Size | Speed | Accuracy | Use Case |
+| Model | Size | Speed | Accuracy | Best For |
 |-------|------|-------|----------|----------|
-| `tiny` | 39 MB | Fastest | Basic | Quick drafts, testing |
-| `base` | 142 MB | Fast | Good | General purpose ✅ |
-| `small` | 466 MB | Medium | Better | Balanced performance |
-| `medium` | 1.5 GB | Slower | High | Professional use |
-| `large` | 2.9 GB | Slowest | Best | High accuracy required |
+| `tiny` | 39 MB | ⚡⚡⚡ | Basic | Quick drafts, testing |
+| `base` | 142 MB | ⚡⚡ | Good | **General purpose** ✅ |
+| `small` | 466 MB | ⚡ | Better | Balanced performance |
+| `medium` | 1.5 GB | 🐌 | High | Professional use |
+| `large` | 2.9 GB | 🐌🐌 | Best | High accuracy required |
 
-### Model Usage Examples
+### Quick Examples
 ```bash
-# Quick transcription
+# Quick test transcription
 make transcribe VIDEO=video.mp4 MODEL=tiny
 
-# Balanced performance
+# General purpose (recommended)
+make transcribe VIDEO=video.mp4 MODEL=base
+
+# Better quality for important content
 make transcribe VIDEO=video.mp4 MODEL=small
 
-# High accuracy
+# Professional quality
 make transcribe VIDEO=video.mp4 MODEL=medium
-
-# English-only content (faster)
-make transcribe VIDEO=video.mp4 MODEL=base.en
 ```
 
 ## 📁 Project Structure
 
 ```
 local-transcriber/
-├── input/                    # Add your videos here
-├── output/                   # Transcriptions appear here
-├── temp/                     # Temporary files
-├── src/                      # Python source code
-├── scripts/                  # Automation scripts
-├── docs/                     # Documentation
-├── Makefile                  # 40+ automation commands
-├── docker-compose.yml        # Docker orchestration
-└── README.md                 # This file
+├── input/                    # 📁 Add your videos here
+├── output/                   # 📄 Transcriptions appear here
+├── temp/                     # 🔧 Temporary files (auto-cleaned)
+├── src/                      # 🐍 Python source code
+├── scripts/                  # 🔧 Automation scripts
+├── docs/                     # 📚 Documentation
+├── Makefile                  # ⚡ 40+ automation commands
+├── docker-compose.yml        # 🐳 Docker orchestration
+└── README.md                 # 📖 This file
 ```
 
-## 🐳 Docker Commands
+## 🐳 Docker Commands (Advanced)
 
-### Basic Usage
+### Basic Docker Usage
 ```bash
-# Build the image
+# Build the image (included in make setup)
 docker-compose build
 
-# Run transcription
+# Run transcription directly
 docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
     -i /app/input/video.mp4 -m base -o /app/output/transcript.txt
 
-# Interactive shell
+# Interactive shell for debugging
 docker-compose run --rm transcriber bash
-
-# View logs
-docker-compose logs transcriber
 ```
 
-### Advanced Docker Usage
+### Advanced Options
 ```bash
 # Transcribe with specific language and format
 docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
@@ -155,7 +137,7 @@ docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
     -o /app/output/video.srt \
     -v
 
-# Keep extracted audio file
+# Keep extracted audio file for reuse
 docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
     -i /app/input/video.mp4 \
     -m medium \
@@ -169,17 +151,15 @@ docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
 
 ```bash
 # Input: M4A audio file (37:13 duration)
-# Output: Multiple formats generated automatically
-
-# Files created:
-# - transcript.txt (32.8 KB) - Plain text
-# - transcript.srt (39.6 KB) - Subtitles
-# - transcript.vtt (38.9 KB) - Web video
-# - transcript.json (64.8 KB) - Detailed metadata
-
-# Processing time: ~75 seconds
 # Model: Whisper Base (142MB)
+# Processing time: ~75 seconds
 # Language: English (auto-detected)
+
+# Output files created:
+# - transcript.txt (32.8 KB) - Plain text
+# - transcript.srt (39.6 KB) - Subtitles for video editing
+# - transcript.vtt (38.9 KB) - Web video subtitles
+# - transcript.json (64.8 KB) - Detailed metadata with timestamps
 ```
 
 ## 🔧 Development & Testing
@@ -205,23 +185,57 @@ make logs                     # View container logs
 make shell                    # Interactive container shell
 ```
 
+## 🆘 Common Issues & Solutions
+
+### "Docker not found"
+```bash
+# Install Docker Desktop for your OS
+# macOS: https://docs.docker.com/desktop/install/mac-install/
+# Windows: https://docs.docker.com/desktop/install/windows-install/
+# Linux: https://docs.docker.com/engine/install/
+```
+
+### "Make not found"
+```bash
+# macOS: Install Xcode Command Line Tools
+xcode-select --install
+
+# Ubuntu/Debian:
+sudo apt-get install make
+
+# Windows: Use WSL or install Make for Windows
+```
+
+### "Permission denied"
+```bash
+# Make sure Docker has permission to access your directories
+chmod 755 input output temp
+```
+
+### "Model not found"
+```bash
+# The base model is included by default
+# For other models, use:
+make download-model MODEL=small
+```
+
 ## 📚 Additional Resources
 
-- **Quick Reference**: `docs/QUICK_REFERENCE.md`
-- **Troubleshooting**: `docs/TROUBLESHOOTING.md`
-- **Developer Guide**: `docs/DEVELOPER_GUIDE.md`
-- **Makefile Guide**: `docs/MAKEFILE_GUIDE.md`
+- **Quick Reference**: `docs/QUICK_REFERENCE.md` - Command cheat sheet
+- **Troubleshooting**: `docs/TROUBLESHOOTING.md` - Detailed issue resolution
+- **Developer Guide**: `docs/DEVELOPER_GUIDE.md` - For contributors
+- **Makefile Guide**: `docs/MAKEFILE_GUIDE.md` - All available commands
 
 ## 🎯 Project Status
 
 **✅ Fully Functional and Production Ready!**
 
-- ✅ Whisper.cpp installed and tested
-- ✅ Docker image built and verified
-- ✅ Transcription tested with real-world audio
-- ✅ Multiple output formats working
-- ✅ Comprehensive documentation
-- ✅ 40+ Makefile commands
+- ✅ Whisper.cpp built and included in Docker image
+- ✅ Base model pre-downloaded and ready to use
+- ✅ Transcription tested with real-world audio (37+ minutes)
+- ✅ Multiple output formats working (TXT, SRT, VTT, JSON)
+- ✅ Comprehensive documentation and examples
+- ✅ 40+ Makefile commands for easy automation
 - ✅ Ready for production use
 
 ## 📄 License
@@ -234,4 +248,6 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for contribution guidelines.
 
 ---
 
-**Happy transcribing! 🎬📝** 
+**Happy transcribing! 🎬📝**
+
+*Need help? Check the troubleshooting guide or open an issue!* 

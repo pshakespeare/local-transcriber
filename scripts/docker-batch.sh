@@ -139,7 +139,7 @@ for video_file in "${VIDEO_FILES[@]}"; do
     print_status "Processing: $filename"
     
     # Build command
-    cmd="docker-compose run --rm transcriber python3 -m src.transcriber"
+    cmd="docker-compose run --rm transcriber python3 -m src.transcriber transcribe"
     cmd="$cmd -i /app/input/$filename"
     cmd="$cmd -m $MODEL_PATH"
     cmd="$cmd -f $FORMAT"

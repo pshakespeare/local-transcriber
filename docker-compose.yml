@@ -11,8 +11,6 @@ services:
       - ./temp:/app/temp
       # Mount source code for development
       - ./src:/app/src
-      # Mount user's Whisper.cpp installation
-      - ${WHISPER_CPP_PATH:-./whisper.cpp}:/opt/whisper.cpp
     environment:
       # Set default paths for the container
       - WHISPER_CPP_DIR=/opt/whisper.cpp
