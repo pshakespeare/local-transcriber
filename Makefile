@@ -41,10 +41,10 @@ help: ## Show this help message
 
 # Setup targets
 .PHONY: setup
-setup: ## Complete project setup (interactive)
+setup: ## Complete project setup (interactive) 
 	@echo -e "$(BLUE)[INFO]$(NC) Starting complete project setup..."
-	@chmod +x setup-guide.sh
-	@./setup-guide.sh
+	@chmod +x ./scripts/setup-guide.sh
+	@./scripts/setup-guide.sh
 
 .PHONY: setup-quick
 setup-quick: ## Quick setup (non-interactive)
@@ -147,27 +147,35 @@ test-whisper: ## Test Whisper.cpp installation
 
 # Transcription targets
 .PHONY: transcribe
-transcribe: ## Transcribe a video file (usage: make transcribe VIDEO=input.mp4)
+transcribe: ## Transcribe a video file (usage: make transcribe VIDEO=input.mp4 MODEL=base)
 	@if [ -z "$(VIDEO)" ]; then \
-		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make transcribe VIDEO=input.mp4"; \
+		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make transcribe VIDEO=input.mp4 MODEL=base"; \
 		exit 1; \
 	fi
-	@echo -e "$(BLUE)[INFO]$(NC) Transcribing $(VIDEO)..."
-	@docker-compose run --rm transcriber python3 -m src.transcriber \
+	@if [ -z "$(MODEL)" ]; then \
+		echo -e "$(YELLOW)[WARNING]$(NC) No MODEL specified, using 'base'"; \
+		MODEL=base; \
+	fi
+	@echo -e "$(BLUE)[INFO]$(NC) Transcribing $(VIDEO) with $(MODEL) model..."
+	@docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
 		-i "/app/input/$(VIDEO)" \
-		-m /opt/whisper.cpp/models/ggml-base.bin \
+		-m "$(MODEL)" \
 		-o "/app/output/$(VIDEO:.mp4=.txt)"
 
 .PHONY: transcribe-srt
-transcribe-srt: ## Transcribe to SRT format (usage: make transcribe-srt VIDEO=input.mp4)
+transcribe-srt: ## Transcribe to SRT format (usage: make transcribe-srt VIDEO=input.mp4 MODEL=base)
 	@if [ -z "$(VIDEO)" ]; then \
-		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make transcribe-srt VIDEO=input.mp4"; \
+		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make transcribe-srt VIDEO=input.mp4 MODEL=base"; \
 		exit 1; \
 	fi
-	@echo -e "$(BLUE)[INFO]$(NC) Transcribing $(VIDEO) to SRT..."
-	@docker-compose run --rm transcriber python3 -m src.transcriber \
+	@if [ -z "$(MODEL)" ]; then \
+		echo -e "$(YELLOW)[WARNING]$(NC) No MODEL specified, using 'base'"; \
+		MODEL=base; \
+	fi
+	@echo -e "$(BLUE)[INFO]$(NC) Transcribing $(VIDEO) to SRT with $(MODEL) model..."
+	@docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
 		-i "/app/input/$(VIDEO)" \
-		-m /opt/whisper.cpp/models/ggml-base.bin \
+		-m "$(MODEL)" \
 		-f srt \
 		-o "/app/output/$(VIDEO:.mp4=.srt)"
 
@@ -178,15 +186,19 @@ transcribe-batch: ## Batch transcribe all videos in input directory
 	@./docker-batch.sh
 
 .PHONY: transcribe-verbose
-transcribe-verbose: ## Transcribe with verbose output (usage: make transcribe-verbose VIDEO=input.mp4)
+transcribe-verbose: ## Transcribe with verbose output (usage: make transcribe-verbose VIDEO=input.mp4 MODEL=base)
 	@if [ -z "$(VIDEO)" ]; then \
-		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make transcribe-verbose VIDEO=input.mp4"; \
+		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make transcribe-verbose VIDEO=input.mp4 MODEL=base"; \
 		exit 1; \
 	fi
-	@echo -e "$(BLUE)[INFO]$(NC) Transcribing $(VIDEO) with verbose output..."
-	@docker-compose run --rm transcriber python3 -m src.transcriber \
+	@if [ -z "$(MODEL)" ]; then \
+		echo -e "$(YELLOW)[WARNING]$(NC) No MODEL specified, using 'base'"; \
+		MODEL=base; \
+	fi
+	@echo -e "$(BLUE)[INFO]$(NC) Transcribing $(VIDEO) with verbose output using $(MODEL) model..."
+	@docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
 		-i "/app/input/$(VIDEO)" \
-		-m /opt/whisper.cpp/models/ggml-base.bin \
+		-m "$(MODEL)" \
 		-o "/app/output/$(VIDEO:.mp4=.txt)" \
 		-v
 
@@ -214,6 +226,11 @@ list-models: ## List available models
 	@echo -e "$(BLUE)[INFO]$(NC) Available models:"
 	@ls -la $(WHISPER_CPP_PATH)/models/ || echo -e "$(YELLOW)[WARNING]$(NC) No models found"
 
+.PHONY: show-models
+show-models: ## Show available Whisper models with details
+	@echo -e "$(BLUE)[INFO]$(NC) Available Whisper models:"
+	@docker-compose run --rm transcriber python3 -m src.transcriber models
+
 # Development targets
 .PHONY: format
 format: ## Format Python code
@@ -235,15 +252,19 @@ type-check: ## Type check Python code
 
 # Performance targets
 .PHONY: benchmark
-benchmark: ## Benchmark transcription (usage: make benchmark VIDEO=input.mp4)
+benchmark: ## Benchmark transcription (usage: make benchmark VIDEO=input.mp4 MODEL=base)
 	@if [ -z "$(VIDEO)" ]; then \
-		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make benchmark VIDEO=input.mp4"; \
+		echo -e "$(RED)[ERROR]$(NC) Please specify VIDEO file: make benchmark VIDEO=input.mp4 MODEL=base"; \
 		exit 1; \
 	fi
-	@echo -e "$(BLUE)[INFO]$(NC) Benchmarking transcription of $(VIDEO)..."
-	@time docker-compose run --rm transcriber python3 -m src.transcriber \
+	@if [ -z "$(MODEL)" ]; then \
+		echo -e "$(YELLOW)[WARNING]$(NC) No MODEL specified, using 'base'"; \
+		MODEL=base; \
+	fi
+	@echo -e "$(BLUE)[INFO]$(NC) Benchmarking transcription of $(VIDEO) with $(MODEL) model..."
+	@time docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
 		-i "/app/input/$(VIDEO)" \
-		-m /opt/whisper.cpp/models/ggml-base.bin \
+		-m "$(MODEL)" \
 		-o "/app/output/$(VIDEO:.mp4=.txt)"
 
 .PHONY: memory-check

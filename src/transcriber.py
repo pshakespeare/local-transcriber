@@ -20,6 +20,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
 import tqdm
+from . import config
 
 console = Console()
 
@@ -84,6 +85,43 @@ class VideoTranscriber:
             "ensure it's in your PATH as 'whisper-main'"
         )
     
+    def _resolve_model_path(self, model_name_or_path: str) -> str:
+        """Resolve model name to file path or validate custom path."""
+        # If it's already a file path, validate it
+        if os.path.isfile(model_name_or_path):
+            return model_name_or_path
+            
+        # Check if it's a model name from config
+        if model_name_or_path in config.WHISPER_MODELS:
+            # Try to find the model file in common locations
+            model_filename = f"ggml-{model_name_or_path}.bin"
+            possible_paths = [
+                f"./whisper.cpp/models/{model_filename}",
+                f"~/whisper.cpp/models/{model_filename}",
+                f"/opt/whisper.cpp/models/{model_filename}",
+                f"/usr/local/whisper.cpp/models/{model_filename}"
+            ]
+            
+            for path in possible_paths:
+                expanded_path = os.path.expanduser(path)
+                if os.path.isfile(expanded_path):
+                    return expanded_path
+                    
+            # If not found, provide helpful error message
+            raise FileNotFoundError(
+                f"Model '{model_name_or_path}' not found. Please download it using:\n"
+                f"cd whisper.cpp && ./models/download-ggml-model.sh {model_name_or_path}"
+            )
+        
+        # If it's not a recognized model name, treat as file path
+        if os.path.isfile(model_name_or_path):
+            return model_name_or_path
+        else:
+            raise FileNotFoundError(
+                f"Model file not found: {model_name_or_path}\n"
+                f"Available models: {', '.join(config.WHISPER_MODELS.keys())}"
+            )
+
     def _check_dependencies(self) -> None:
         """Check if required dependencies are available."""
         # Check FFmpeg
@@ -201,7 +239,7 @@ class VideoTranscriber:
             self.console.print(f"[red]✗ Failed to parse JSON output: {e}[/red]")
             raise
     
-    def transcribe_video(self, video_path: str, model_path: str, 
+    def transcribe_video(self, video_path: str, model_name_or_path: str, 
                         output_path: str = None, language: str = None,
                         output_format: str = "txt", keep_audio: bool = False,
                         verbose: bool = False) -> str:
@@ -228,8 +266,8 @@ class VideoTranscriber:
             if not os.path.exists(video_path):
                 raise FileNotFoundError(f"Video file not found: {video_path}")
             
-            if not os.path.exists(model_path):
-                raise FileNotFoundError(f"Model file not found: {model_path}")
+            # Resolve model path
+            model_path = self._resolve_model_path(model_name_or_path)
             
             # Generate output path if not provided
             if output_path is None:
@@ -302,11 +340,39 @@ def display_info():
         title="Welcome"
     ))
 
-@click.command()
+def list_models():
+    """Display available Whisper models."""
+    table = Table(title="Available Whisper Models")
+    table.add_column("Model", style="cyan", no_wrap=True)
+    table.add_column("Size", style="magenta")
+    table.add_column("Speed", style="yellow")
+    table.add_column("Accuracy", style="green")
+    table.add_column("Description", style="white")
+    
+    for model_name, model_info in config.WHISPER_MODELS.items():
+        table.add_row(
+            model_name,
+            model_info['size'],
+            model_info['speed'],
+            model_info['accuracy'],
+            model_info['description']
+        )
+    
+    console.print(table)
+    console.print("\n[bold]Usage:[/bold]")
+    console.print("• Use model name: python3 -m src.transcriber -i video.mp4 -m base")
+    console.print("• Use custom path: python3 -m src.transcriber -i video.mp4 -m /path/to/model.bin")
+
+@click.group()
+def cli():
+    """Local Video Transcriber - Transcribe video files using Whisper.cpp and FFmpeg."""
+    pass
+
+@cli.command()
 @click.option('--input', '-i', 'input_file', required=True,
               help='Input video file (MP4 format)')
 @click.option('--model', '-m', 'model_path', required=True,
-              help='Path to Whisper model file (.bin)')
+              help='Whisper model name (tiny, base, small, medium, large) or path to model file (.bin)')
 @click.option('--output', '-o', 'output_file',
               help='Output file for transcription (default: auto-generated)')
 @click.option('--whisper-path', '-w', 'whisper_path',
@@ -322,7 +388,7 @@ def display_info():
               help='Keep extracted audio file after transcription')
 @click.option('--verbose', '-v', is_flag=True,
               help='Enable verbose output')
-def main(input_file, model_path, output_file, whisper_path, language, 
+def transcribe(input_file, model_path, output_file, whisper_path, language, 
          output_format, temp_dir, keep_audio, verbose):
     """Local Video Transcriber - Transcribe video files using Whisper.cpp and FFmpeg."""
     
@@ -353,7 +419,7 @@ def main(input_file, model_path, output_file, whisper_path, language,
         # Perform transcription
         output_path = transcriber.transcribe_video(
             video_path=input_file,
-            model_path=model_path,
+            model_name_or_path=model_path,
             output_path=output_file,
             language=language,
             output_format=output_format,
@@ -378,5 +444,10 @@ def main(input_file, model_path, output_file, whisper_path, language,
             console.print(f"[red]{traceback.format_exc()}[/red]")
         sys.exit(1)
 
+@cli.command()
+def models():
+    """List available Whisper models."""
+    list_models()
+
 if __name__ == "__main__":
-    main() 
+    cli() 

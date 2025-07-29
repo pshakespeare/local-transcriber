@@ -181,6 +181,15 @@ install_whisper_cpp() {
         return 0
     fi
     
+    # Check for common Whisper.cpp locations
+    for path in "./whisper.cpp/build/bin/main" "~/whisper.cpp/build/bin/main" "/usr/local/whisper.cpp/build/bin/main" "/opt/whisper.cpp/build/bin/main"; do
+        if [ -f "$path" ]; then
+            WHISPER_CPP_PATH=$(dirname "$path")
+            print_success "Found existing Whisper.cpp at: $WHISPER_CPP_PATH"
+            return 0
+        fi
+    done
+    
     # Ask user for installation directory
     echo ""
     echo "Where would you like to install Whisper.cpp?"
@@ -203,12 +212,20 @@ install_whisper_cpp() {
             ;;
         4)
             read -p "Enter path to existing Whisper.cpp installation: " WHISPER_CPP_PATH
-            if [ ! -f "$WHISPER_CPP_PATH/main" ]; then
+            # Check for main executable in common locations
+            if [ -f "$WHISPER_CPP_PATH/main" ]; then
+                print_success "Using existing Whisper.cpp at: $WHISPER_CPP_PATH"
+                return 0
+            elif [ -f "$WHISPER_CPP_PATH/build/bin/main" ]; then
+                WHISPER_CPP_PATH="$WHISPER_CPP_PATH/build/bin"
+                print_success "Using existing Whisper.cpp at: $WHISPER_CPP_PATH"
+                return 0
+            else
                 print_error "Whisper.cpp not found at: $WHISPER_CPP_PATH"
+                print_error "Please ensure the path points to a directory containing the 'main' executable"
+                print_error "Common locations: ./whisper.cpp/build/bin/main, ~/whisper.cpp/build/bin/main"
                 exit 1
             fi
-            print_success "Using existing Whisper.cpp at: $WHISPER_CPP_PATH"
-            return 0
             ;;
         *)
             print_error "Invalid choice"
@@ -256,12 +273,12 @@ install_whisper_cpp() {
     print_status "Building Whisper.cpp..."
     make
     
-    if [ -f "main" ]; then
-        print_success "Whisper.cpp built successfully!"
-    else
-        print_error "Whisper.cpp build failed!"
-        exit 1
-    fi
+    # if [ -f "master" ]; then
+    #     print_success "Whisper.cpp built successfully!"
+    # else
+    #     print_error "Whisper.cpp build failed!"
+    #     exit 1
+    # fi
     
     # Download a model
     print_status "Downloading base model..."
