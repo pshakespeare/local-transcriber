@@ -82,7 +82,7 @@ check_system_requirements() {
     fi
     
     # Check disk space
-    DISK_GB=$(df -BG  | awk 'NR==2 {print $4}' | sed 's/G//')
+    DISK_GB=$(df -bg  | awk 'NR==2 {print $4}' | sed 's/G//')
     if [ "$DISK_GB" -ge 5 ]; then
         print_success "Disk space: ${DISK_GB}GB available (Minimum 5GB required)"
     else

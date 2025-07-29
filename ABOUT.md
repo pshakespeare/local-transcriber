@@ -36,6 +36,7 @@ make transcribe-srt VIDEO=my_video.mp4
 - **Output**: TXT, SRT, VTT, and JSON formats
 - **Content**: Technical discussion about AWS infrastructure optimization
 - **Quality**: High accuracy with automatic language detection
+- **Status**: Project tested and verified with real-world usage
 
 **Perfect for:** Content creators, researchers, accessibility, data analysis, and anyone who values privacy in AI transcription.
 
