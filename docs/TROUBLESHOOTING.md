@@ -1,6 +1,6 @@
 # Troubleshooting Guide - Local Video Transcriber
 
-This guide covers common issues and their solutions for developers and DevOps engineers.
+This guide covers common issues and their solutions for the Docker-first approach.
 
 ## 🔍 Quick Diagnostic
 
@@ -12,22 +12,59 @@ echo "=== System Information ==="
 uname -a
 docker --version
 docker-compose --version
-echo "WHISPER_CPP_PATH: $WHISPER_CPP_PATH"
 
 echo "=== Project Status ==="
 ls -la
 ls -la input/ output/ temp/ 2>/dev/null || echo "Directories not found"
 
-echo "=== Whisper.cpp Check ==="
-if [ -n "$WHISPER_CPP_PATH" ]; then
-    ls -la "$WHISPER_CPP_PATH/main" 2>/dev/null || echo "Whisper.cpp main not found"
-    ls -la "$WHISPER_CPP_PATH/models/" 2>/dev/null || echo "Models directory not found"
-else
-    echo "WHISPER_CPP_PATH not set"
-fi
-
 echo "=== Docker Status ==="
 docker-compose ps
+docker images | grep local-transcriber
+```
+
+## 🚀 First-Time Setup Issues
+
+### Setup Fails with "Permission denied"
+
+**Error:** `chmod: cannot access 'scripts/setup-guide.sh': No such file or directory`
+
+**Solution:**
+```bash
+# Ensure you're in the project root
+pwd
+ls -la
+
+# Run setup again
+make setup
+```
+
+### Docker Build Takes Too Long
+
+**Issue:** First build takes 10+ minutes
+
+**Solution:**
+```bash
+# This is normal for first build - Whisper.cpp compilation takes time
+# Subsequent builds will be faster due to Docker layer caching
+
+# To speed up future builds:
+docker system prune -f  # Clean unused images
+```
+
+### "Docker not found" Error
+
+**Error:** `docker: command not found`
+
+**Solution:**
+```bash
+# Install Docker Desktop for your OS:
+# macOS: https://docs.docker.com/desktop/install/mac-install/
+# Windows: https://docs.docker.com/desktop/install/windows-install/
+# Linux: https://docs.docker.com/engine/install/
+
+# Verify installation
+docker --version
+docker-compose --version
 ```
 
 ## 🐳 Docker Issues
@@ -39,7 +76,7 @@ docker-compose ps
 **Solution:**
 ```bash
 # Clean build
-docker-compose build --no-cache
+make build-no-cache
 
 # Check Docker daemon
 docker info
@@ -81,16 +118,13 @@ df -h
 **Solution:**
 ```bash
 # Check logs
-docker-compose logs transcriber
+make logs
 
 # Run with verbose output
-docker-compose run --rm transcriber python3 transcriber.py \
-    -i /app/input/video.mp4 \
-    -m /opt/whisper.cpp/models/ggml-base.bin \
-    -v
+make transcribe-verbose VIDEO=video.mp4 MODEL=base
 
 # Interactive debugging
-docker-compose run --rm transcriber bash
+make shell
 ```
 
 **Error: `cannot connect to the Docker daemon`**
@@ -98,442 +132,273 @@ docker-compose run --rm transcriber bash
 **Solution:**
 ```bash
 # Start Docker service
-sudo systemctl start docker
+# macOS/Windows: Start Docker Desktop
+# Linux: sudo systemctl start docker
 
-# Check Docker status
-sudo systemctl status docker
-
-# Restart Docker Desktop (macOS/Windows)
+# Verify Docker is running
+docker ps
 ```
 
-## 🔧 Whisper.cpp Issues
+## 🎤 Transcription Issues
 
-### Installation Problems
+### "Model not found" Error
 
-**Error: `make: command not found`**
+**Error:** `Model 'base' not found`
 
 **Solution:**
 ```bash
-# Ubuntu/Debian
-sudo apt-get update
-sudo apt-get install -y build-essential cmake
+# The base model should be pre-downloaded in the Docker image
+# If this error occurs, rebuild the image:
 
-# CentOS/RHEL
-sudo yum groupinstall -y "Development Tools"
-sudo yum install -y cmake
+make build-no-cache
+make setup
 
-# macOS
-brew install cmake
-
-# Windows
-# Use WSL2 or install Visual Studio Build Tools
+# Or download the model manually inside the container:
+docker-compose run --rm transcriber bash -c \
+    "cd /opt/whisper.cpp && bash ./models/download-ggml-model.sh base"
 ```
 
-**Error: `cmake: command not found`**
+### "Whisper.cpp executable not found" Error
+
+**Error:** `Whisper.cpp main executable not found`
 
 **Solution:**
 ```bash
-# Ubuntu/Debian
-sudo apt-get install -y cmake
+# This should not happen with the Docker-first approach
+# If it does, rebuild the image:
 
-# CentOS/RHEL
-sudo yum install -y cmake
+make build-no-cache
+make setup
 
-# macOS
-brew install cmake
+# Verify the executable exists:
+docker-compose run --rm transcriber ls -la /opt/whisper.cpp/build/bin/
 ```
 
-**Error: `git: command not found`**
+### "Exec format error" Error
+
+**Error:** `Exec format error: '/opt/whisper.cpp/main'`
 
 **Solution:**
 ```bash
-# Ubuntu/Debian
-sudo apt-get install -y git
+# This indicates an architecture mismatch
+# The Docker image should handle this automatically
+# If it persists, rebuild:
 
-# CentOS/RHEL
-sudo yum install -y git
-
-# macOS
-brew install git
-
-# Windows
-# Download from https://git-scm.com/download/win
+make build-no-cache
+make setup
 ```
 
-### Build Failures
+### Poor Transcription Quality
 
-**Error: `make: *** [main] Error 1`**
+**Issue:** Transcription is inaccurate or has errors
+
+**Solutions:**
+```bash
+# Try a larger model
+make transcribe VIDEO=video.mp4 MODEL=small
+make transcribe VIDEO=video.mp4 MODEL=medium
+
+# Specify language if known
+make transcribe VIDEO=video.mp4 MODEL=base LANGUAGE=en
+
+# Check audio quality
+docker-compose run --rm transcriber ffmpeg -i /app/input/video.mp4 -af "volumedetect" -f null /dev/null
+```
+
+### Slow Transcription
+
+**Issue:** Transcription takes too long
+
+**Solutions:**
+```bash
+# Use a smaller model
+make transcribe VIDEO=video.mp4 MODEL=tiny
+
+# Check system resources
+docker stats
+
+# Increase Docker resources
+# Docker Desktop: Settings > Resources > Memory > 8GB, CPUs > 4
+```
+
+## 🔧 Command Line Issues
+
+### "No such option: -i" Error
+
+**Error:** `Error: No such option: -i`
 
 **Solution:**
 ```bash
-# Check system requirements
-free -h  # At least 4GB RAM
-df -h    # At least 5GB disk space
-
-# Clean and rebuild
-cd whisper.cpp
-make clean
-make
-
-# Check for specific errors
-make VERBOSE=1
-```
-
-**Error: `fatal error: 'stdio.h' file not found`**
-
-**Solution:**
-```bash
-# Install development headers
-sudo apt-get install -y build-essential
-# OR
-sudo yum groupinstall -y "Development Tools"
-```
-
-### Model Issues
-
-**Error: `model file not found`**
-
-**Solution:**
-```bash
-# Check model path
-ls -la $WHISPER_CPP_PATH/models/
-
-# Download model
-cd $WHISPER_CPP_PATH
-bash ./models/download-ggml-model.sh base
-
-# Verify download
-ls -la models/ggml-base.bin
-```
-
-**Error: `failed to load model`**
-
-**Solution:**
-```bash
-# Check model integrity
-cd $WHISPER_CPP_PATH
-ls -la models/ggml-base.bin
-
-# Re-download model
-rm models/ggml-base.bin
-bash ./models/download-ggml-model.sh base
-
-# Test model directly
-./main -m models/ggml-base.bin -f test.wav
-```
-
-## 🎬 Video/Audio Issues
-
-### FFmpeg Problems
-
-**Error: `ffmpeg: command not found`**
-
-**Solution:**
-```bash
-# Check if FFmpeg is in container
-docker-compose run --rm transcriber ffmpeg -version
-
-# If not found, rebuild container
-docker-compose build --no-cache
-```
-
-**Error: `Invalid data found when processing input`**
-
-**Solution:**
-```bash
-# Check video file
-file input/video.mp4
-
-# Try different audio codec
-docker-compose run --rm transcriber python3 transcriber.py \
+# Use the correct CLI structure with 'transcribe' subcommand
+docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
     -i /app/input/video.mp4 \
-    -m /opt/whisper.cpp/models/ggml-base.bin \
-    -v
+    -m base \
+    -o /app/output/transcript.txt
 
-# Convert video first
-docker-compose run --rm transcriber ffmpeg \
-    -i /app/input/video.mp4 \
-    -c:v copy -c:a aac /app/input/converted.mp4
+# Or use the Makefile (recommended)
+make transcribe VIDEO=video.mp4 MODEL=base
 ```
 
-**Error: `No such file or directory`**
+### "Module not found" Error
+
+**Error:** `ModuleNotFoundError: No module named 'src'`
 
 **Solution:**
 ```bash
-# Check file exists
+# Ensure you're running from the project root
+pwd
+ls -la src/
+
+# Rebuild the Docker image
+make build-no-cache
+```
+
+## 📁 File System Issues
+
+### "Input file not found" Error
+
+**Error:** `Input file not found: /app/input/video.mp4`
+
+**Solution:**
+```bash
+# Check if file exists in input directory
 ls -la input/
 
+# Ensure file is in the correct location
+cp /path/to/your/video.mp4 input/
+
 # Check file permissions
-chmod 644 input/*.mp4
-
-# Check volume mounts
-docker-compose run --rm transcriber ls -la /app/input/
+chmod 644 input/video.mp4
 ```
 
-### Audio Extraction Issues
+### "Permission denied" for Output
 
-**Error: `audio extraction failed`**
+**Error:** `Permission denied: /app/output/transcript.txt`
 
 **Solution:**
 ```bash
-# Check video has audio
-docker-compose run --rm transcriber ffprobe \
-    -v quiet -show_streams -select_streams a \
-    /app/input/video.mp4
+# Fix output directory permissions
+chmod 755 output
+chown -R $USER:$USER output
 
-# Extract audio manually
-docker-compose run --rm transcriber ffmpeg \
-    -i /app/input/video.mp4 \
-    -ar 16000 -ac 1 -c:a pcm_s16le \
-    /app/temp/extracted.wav
-```
-
-## 💾 Memory and Performance Issues
-
-### Out of Memory
-
-**Error: `Killed` or `Out of memory`**
-
-**Solution:**
-```bash
-# Use smaller model
-docker-compose run --rm transcriber python3 transcriber.py \
-    -i /app/input/video.mp4 \
-    -m /opt/whisper.cpp/models/ggml-tiny.bin
-
-# Increase Docker memory
-# Docker Desktop: Settings > Resources > Memory > 8GB
-
-# Set memory limits
-docker-compose run --rm --memory=4g transcriber python3 transcriber.py \
-    -i /app/input/video.mp4 \
-    -m /opt/whisper.cpp/models/ggml-base.bin
-```
-
-### Slow Performance
-
-**Solution:**
-```bash
-# Use faster model
--m /opt/whisper.cpp/models/ggml-tiny.bin
-
-# Increase CPU allocation
-docker-compose run --rm --cpus=4 transcriber python3 transcriber.py \
-    -i /app/input/video.mp4 \
-    -m /opt/whisper.cpp/models/ggml-base.bin
-
-# Use SSD storage
-# Mount volumes on SSD for better I/O
-```
-
-## 🔐 Permission Issues
-
-### File Permissions
-
-**Error: `Permission denied`**
-
-**Solution:**
-```bash
-# Fix directory permissions
-chmod 755 input output temp
-
-# Fix file permissions
-chmod 644 input/*.mp4
-
-# Check ownership
-ls -la input/ output/ temp/
-
-# Fix ownership
+# Or run with proper permissions
 sudo chown -R $USER:$USER .
 ```
 
-### Docker Permissions
+### "No space left on device" Error
 
-**Error: `Got permission denied while trying to connect to the Docker daemon`**
-
-**Solution:**
-```bash
-# Add user to docker group
-sudo usermod -aG docker $USER
-
-# Log out and back in, or run:
-newgrp docker
-
-# Check group membership
-groups $USER
-```
-
-## 🌐 Network Issues
-
-### Model Download Failures
-
-**Error: `Failed to download model`**
+**Error:** `No space left on device`
 
 **Solution:**
 ```bash
-# Check internet connection
-ping -c 3 google.com
-
-# Use different download method
-cd $WHISPER_CPP_PATH
-wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin \
-    -O models/ggml-base.bin
-
-# Check proxy settings
-echo $http_proxy $https_proxy
-```
-
-### Docker Network Issues
-
-**Error: `network unreachable`**
-
-**Solution:**
-```bash
-# Check Docker network
-docker network ls
-
-# Restart Docker
-sudo systemctl restart docker
-
-# Check DNS
-docker run --rm alpine nslookup google.com
-```
-
-## 🔧 Configuration Issues
-
-### Environment Variables
-
-**Error: `WHISPER_CPP_PATH not set`**
-
-**Solution:**
-```bash
-# Set environment variable
-export WHISPER_CPP_PATH=/path/to/whisper.cpp
-
-# Add to shell profile
-echo 'export WHISPER_CPP_PATH="/path/to/whisper.cpp"' >> ~/.bashrc
-echo 'export WHISPER_CPP_PATH="/path/to/whisper.cpp"' >> ~/.zshrc
-
-# Reload shell
-source ~/.bashrc  # or source ~/.zshrc
-```
-
-### Volume Mount Issues
-
-**Error: `bind mount failed`**
-
-**Solution:**
-```bash
-# Check volume syntax
-docker-compose config
-
-# Fix volume paths
-# Use absolute paths or relative paths from project root
-
-# Check file system
-df -T .
-```
-
-## 🐛 Debugging Techniques
-
-### Verbose Logging
-
-```bash
-# Enable verbose output
-docker-compose run --rm transcriber python3 transcriber.py \
-    -i /app/input/video.mp4 \
-    -m /opt/whisper.cpp/models/ggml-base.bin \
-    -v
-
-# Check Docker logs
-docker-compose logs transcriber
-
-# Interactive debugging
-docker-compose run --rm transcriber bash
-```
-
-### Step-by-Step Testing
-
-```bash
-# 1. Test Docker
-docker run --rm hello-world
-
-# 2. Test FFmpeg
-docker-compose run --rm transcriber ffmpeg -version
-
-# 3. Test Whisper.cpp
-docker-compose run --rm transcriber /opt/whisper.cpp/main --help
-
-# 4. Test audio extraction
-docker-compose run --rm transcriber ffmpeg \
-    -i /app/input/video.mp4 \
-    -ar 16000 -ac 1 -c:a pcm_s16le \
-    /app/temp/test.wav
-
-# 5. Test transcription
-docker-compose run --rm transcriber /opt/whisper.cpp/main \
-    -m /opt/whisper.cpp/models/ggml-base.bin \
-    -f /app/temp/test.wav
-```
-
-### System Diagnostics
-
-```bash
-# Check system resources
-htop
+# Check disk space
 df -h
-free -h
 
-# Check Docker resources
-docker system df
+# Clean up temporary files
+make clean
+
+# Clean Docker
+docker system prune -a
+```
+
+## 🔄 Performance Issues
+
+### High Memory Usage
+
+**Issue:** Container uses too much memory
+
+**Solutions:**
+```bash
+# Use a smaller model
+make transcribe VIDEO=video.mp4 MODEL=tiny
+
+# Limit Docker memory
+# Docker Desktop: Settings > Resources > Memory > 4GB
+
+# Monitor memory usage
+docker stats
+```
+
+### Slow Processing
+
+**Issue:** Transcription is very slow
+
+**Solutions:**
+```bash
+# Use smaller model for speed
+make transcribe VIDEO=video.mp4 MODEL=tiny
+
+# Check CPU usage
 docker stats
 
-# Check network
-netstat -tuln
-ping -c 3 google.com
+# Increase Docker CPU allocation
+# Docker Desktop: Settings > Resources > CPUs > 4
 ```
 
-## 📞 Getting Help
+## 🆘 Getting Help
 
-### Information to Include
-
-When reporting issues, include:
+### Debug Information
 
 ```bash
-# System information
+# Collect debug information
+echo "=== System Info ==="
 uname -a
 docker --version
 docker-compose --version
-echo $WHISPER_CPP_PATH
 
-# Project status
+echo "=== Project Info ==="
+pwd
 ls -la
 docker-compose ps
 
-# Error logs
-docker-compose logs transcriber
+echo "=== Docker Images ==="
+docker images | grep local-transcriber
 
-# Full error message
-# Copy the complete error output
+echo "=== Container Logs ==="
+docker-compose logs transcriber
 ```
 
-### Common Debugging Commands
+### Common Commands
 
 ```bash
-# Check everything
-./setup-guide.sh
+# Show help
+make help
 
-# Quick test
-docker-compose run --rm transcriber python3 transcriber.py --help
+# Check prerequisites
+make check-prerequisites
+
+# View logs
+make logs
 
 # Interactive shell
-docker-compose run --rm transcriber bash
+make shell
 
-# Check file structure
-tree -L 2
-find . -name "*.py" -o -name "*.sh" -o -name "*.yml"
+# Clean everything
+make clean
+docker-compose down
+docker system prune -f
 ```
+
+### Reset Everything
+
+```bash
+# Complete reset
+make clean
+docker-compose down
+docker system prune -a -f
+make setup
+```
+
+## 📞 Support
+
+If you're still having issues:
+
+1. **Check the logs:** `make logs`
+2. **Run diagnostics:** `make check-prerequisites`
+3. **Try a clean setup:** `make clean && make setup`
+4. **Check this guide** for your specific error
+5. **Open an issue** with debug information
 
 ---
 
-**Still having issues?** Check the [README.md](README.md) for comprehensive documentation or create an issue with detailed error information. 
+**Remember:** The Docker-first approach should handle most setup issues automatically. If you encounter problems, try rebuilding the Docker image with `make build-no-cache`. 

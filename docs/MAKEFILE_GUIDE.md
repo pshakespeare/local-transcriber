@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The Makefile provides a comprehensive set of commands to manage the Local Video Transcriber project. It simplifies common tasks like building, testing, transcribing, and deploying the application.
+The Makefile provides a comprehensive set of commands to manage the Local Video Transcriber project. It simplifies common tasks like building, testing, transcribing, and deploying the application with a Docker-first approach.
 
 ## 🚀 Quick Start
 
@@ -11,7 +11,7 @@ The Makefile provides a comprehensive set of commands to manage the Local Video 
 # Show all available commands
 make help
 
-# Complete project setup
+# Complete project setup (Docker-first)
 make setup
 
 # Quick setup (non-interactive)
@@ -30,7 +30,7 @@ make test-help
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `setup` | Complete interactive setup | `make setup` |
+| `setup` | Complete Docker-first setup | `make setup` |
 | `setup-quick` | Quick non-interactive setup | `make setup-quick` |
 | `check-prerequisites` | Check system requirements | `make check-prerequisites` |
 | `validate` | Validate project setup | `make validate` |
@@ -59,18 +59,18 @@ make test-help
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `transcribe` | Transcribe video to TXT | `make transcribe VIDEO=input.mp4` |
-| `transcribe-srt` | Transcribe to SRT format | `make transcribe-srt VIDEO=input.mp4` |
-| `transcribe-verbose` | Transcribe with verbose output | `make transcribe-verbose VIDEO=input.mp4` |
+| `transcribe` | Transcribe video to TXT | `make transcribe VIDEO=input.mp4 MODEL=base` |
+| `transcribe-srt` | Transcribe to SRT format | `make transcribe-srt VIDEO=input.mp4 MODEL=base` |
+| `transcribe-verbose` | Transcribe with verbose output | `make transcribe-verbose VIDEO=input.mp4 MODEL=base` |
 | `transcribe-batch` | Batch transcribe all videos | `make transcribe-batch` |
-| `quick` | Quick transcription alias | `make quick VIDEO=input.mp4` |
+| `quick` | Quick transcription alias | `make quick VIDEO=input.mp4 MODEL=base` |
 
 ### 🤖 Model Management
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `download-model` | Download Whisper model | `make download-model MODEL=base` |
-| `list-models` | List available models | `make list-models` |
+| `show-models` | List available models | `make show-models` |
+| `download-model` | Download Whisper model | `make download-model MODEL=small` |
 
 ### 🧹 Cleanup
 
@@ -84,7 +84,7 @@ make test-help
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `benchmark` | Benchmark transcription | `make benchmark VIDEO=input.mp4` |
+| `benchmark` | Benchmark transcription | `make benchmark VIDEO=input.mp4 MODEL=base` |
 | `memory-check` | Check memory usage | `make memory-check` |
 | `status` | Show project status | `make status` |
 | `info` | Show detailed information | `make info` |
@@ -97,284 +97,399 @@ make test-help
 | `deploy-push` | Push to registry | `make deploy-push REGISTRY=myregistry` |
 | `deploy` | Deploy to production | `make deploy` |
 
-### 🔧 Development
+## 🔧 Detailed Command Reference
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `format` | Format Python code | `make format` |
-| `lint` | Lint Python code | `make lint` |
-| `type-check` | Type check Python code | `make type-check` |
-| `dev` | Development mode | `make dev` |
+### Setup Commands
 
-### 🔄 CI/CD
+#### `make setup`
+Complete project setup with Docker-first approach.
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `ci-build` | CI build target | `make ci-build` |
-| `ci-test` | CI test target | `make ci-test` |
+**What it does:**
+- Checks system requirements (OS, RAM, disk space)
+- Verifies prerequisites (Docker, Docker Compose, Git, Make)
+- Creates project directories (input, output, temp)
+- Builds Docker image (includes Whisper.cpp and base model)
+- Tests installation
 
-### 📚 Documentation
-
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `docs` | Show documentation info | `make docs` |
-| `readme` | Show README | `make readme` |
-
-### 🛠️ Utilities
-
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `all` | Complete setup and build | `make all` |
-| `debug` | Print make variables | `make debug` |
-
-## 💡 Usage Examples
-
-### Complete Workflow
+**Example:**
 ```bash
-# 1. Setup project
 make setup
-
-# 2. Build Docker image
-make build
-
-# 3. Test installation
-make test-help
-
-# 4. Transcribe a video
-make transcribe VIDEO=my_video.mp4
-
-# 5. Check status
-make status
 ```
 
-### Development Workflow
+**Output:**
+```
+[INFO] Starting complete project setup...
+[SUCCESS] OS: Darwin detected
+[SUCCESS] RAM: 64GB (Minimum 4GB required)
+[SUCCESS] Docker: 28.0.4
+[SUCCESS] Docker image built successfully!
+[SUCCESS] Installation test passed!
+```
+
+#### `make setup-quick`
+Quick non-interactive setup for experienced users.
+
+**What it does:**
+- Creates project directories
+- Builds Docker image
+- Skips verbose output
+
+**Example:**
 ```bash
-# 1. Quick setup
 make setup-quick
-
-# 2. Build and test
-make build
-make test-help
-
-# 3. Development mode
-make dev
-
-# 4. Format and lint code
-make format
-make lint
 ```
 
-### Production Deployment
+#### `make check-prerequisites`
+Check if all system requirements are met.
+
+**What it checks:**
+- Docker and Docker Compose versions
+- Git and Make availability
+- Docker image status
+
+**Example:**
 ```bash
-# 1. Build production image
-make deploy-build
-
-# 2. Push to registry
-make deploy-push REGISTRY=myregistry
-
-# 3. Deploy
-make deploy
-```
-
-### Troubleshooting
-```bash
-# 1. Check prerequisites
 make check-prerequisites
-
-# 2. Validate setup
-make validate
-
-# 3. Check status
-make status
-
-# 4. View logs
-make logs
 ```
 
-## 🔧 Configuration
+### Docker Commands
 
-### Environment Variables
+#### `make build`
+Build the Docker image with all dependencies.
 
-The Makefile uses these environment variables:
+**What it builds:**
+- Ubuntu 22.04 base image
+- Python dependencies
+- Whisper.cpp (cloned and compiled)
+- Base Whisper model (pre-downloaded)
+- Application code
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `WHISPER_CPP_PATH` | Path to Whisper.cpp installation | None (required) |
-| `VIDEO` | Video file for transcription | None (required for transcribe commands) |
-| `MODEL` | Whisper model name | None (required for download-model) |
-| `REGISTRY` | Docker registry | None (required for deploy-push) |
-
-### Setting Environment Variables
-
+**Example:**
 ```bash
-# Set Whisper.cpp path
-export WHISPER_CPP_PATH=/path/to/whisper.cpp
-
-# Add to shell profile
-echo 'export WHISPER_CPP_PATH="/path/to/whisper.cpp"' >> ~/.bashrc
-echo 'export WHISPER_CPP_PATH="/path/to/whisper.cpp"' >> ~/.zshrc
+make build
 ```
 
-## 🎯 Common Use Cases
+#### `make build-no-cache`
+Build Docker image without using cache.
+
+**Use when:**
+- Dependencies have changed
+- Troubleshooting build issues
+- Ensuring fresh build
+
+**Example:**
+```bash
+make build-no-cache
+```
+
+#### `make shell`
+Open an interactive shell in the container.
+
+**Useful for:**
+- Debugging
+- Manual testing
+- Exploring the container environment
+
+**Example:**
+```bash
+make shell
+```
+
+### Transcription Commands
+
+#### `make transcribe`
+Transcribe a video file to plain text.
+
+**Parameters:**
+- `VIDEO`: Input video filename (required)
+- `MODEL`: Whisper model to use (optional, defaults to 'base')
+
+**Example:**
+```bash
+make transcribe VIDEO=meeting.mp4 MODEL=base
+```
+
+**What it does:**
+- Extracts audio from video using FFmpeg
+- Transcribes audio using Whisper.cpp
+- Saves result to output directory
+
+#### `make transcribe-srt`
+Generate subtitles in SRT format.
+
+**Parameters:**
+- `VIDEO`: Input video filename (required)
+- `MODEL`: Whisper model to use (optional, defaults to 'base')
+
+**Example:**
+```bash
+make transcribe-srt VIDEO=presentation.mp4 MODEL=small
+```
+
+#### `make transcribe-verbose`
+Transcribe with detailed output for debugging.
+
+**Example:**
+```bash
+make transcribe-verbose VIDEO=video.mp4 MODEL=base
+```
+
+#### `make transcribe-batch`
+Process all video files in the input directory.
+
+**Example:**
+```bash
+make transcribe-batch
+```
+
+### Model Management Commands
+
+#### `make show-models`
+Display available Whisper models and their characteristics.
+
+**Example:**
+```bash
+make show-models
+```
+
+**Output:**
+```
+Available Whisper Models:
+┌─────────┬──────────┬─────────┬──────────┬─────────────────────────────┐
+│ Model   │ Size     │ Speed   │ Accuracy │ Description                 │
+├─────────┼──────────┼─────────┼──────────┼─────────────────────────────┤
+│ tiny    │ 39 MB    │ ⚡⚡⚡   │ Low      │ Fastest model, suitable for │
+│         │          │         │          │ real-time transcription     │
+│ base    │ 142 MB   │ ⚡⚡     │ Medium   │ Good balance of speed and   │
+│         │          │         │          │ accuracy                    │
+│ small   │ 466 MB   │ ⚡       │ Better   │ Better accuracy for        │
+│         │          │         │          │ important content           │
+└─────────┴──────────┴─────────┴──────────┴─────────────────────────────┘
+```
+
+#### `make download-model`
+Download additional Whisper models.
+
+**Parameters:**
+- `MODEL`: Model name to download (tiny, base, small, medium, large)
+
+**Example:**
+```bash
+make download-model MODEL=small
+```
+
+### Testing Commands
+
+#### `make test`
+Run the complete test suite.
+
+**What it tests:**
+- Unit tests for VideoTranscriber class
+- FFmpeg functionality
+- Whisper.cpp integration
+- CLI interface
+
+**Example:**
+```bash
+make test
+```
+
+#### `make test-help`
+Test the help command functionality.
+
+**Example:**
+```bash
+make test-help
+```
+
+#### `make benchmark`
+Benchmark transcription performance.
+
+**Parameters:**
+- `VIDEO`: Video file to benchmark
+- `MODEL`: Model to test
+
+**Example:**
+```bash
+make benchmark VIDEO=test.mp4 MODEL=base
+```
+
+### Cleanup Commands
+
+#### `make clean`
+Remove temporary files and directories.
+
+**What it cleans:**
+- temp/ directory contents
+- Generated audio files
+- Temporary transcription files
+
+**Example:**
+```bash
+make clean
+```
+
+#### `make clean-docker`
+Clean Docker resources.
+
+**What it cleans:**
+- Stopped containers
+- Unused images
+- Build cache
+
+**Example:**
+```bash
+make clean-docker
+```
+
+#### `make clean-all`
+Complete cleanup of all project resources.
+
+**Example:**
+```bash
+make clean-all
+```
+
+## 🎯 Common Usage Patterns
 
 ### First-Time Setup
 ```bash
-# Interactive setup (recommended)
+# Complete setup
 make setup
 
-# Or quick setup
-make setup-quick
-export WHISPER_CPP_PATH=/path/to/whisper.cpp
-make build
+# Verify installation
 make test-help
+make show-models
 ```
 
 ### Daily Usage
 ```bash
 # Transcribe a video
-make transcribe VIDEO=presentation.mp4
+make transcribe VIDEO=meeting.mp4 MODEL=base
 
 # Generate subtitles
-make transcribe-srt VIDEO=presentation.mp4
+make transcribe-srt VIDEO=presentation.mp4 MODEL=small
 
 # Batch process
 make transcribe-batch
 ```
 
-### Development
+### Development Workflow
 ```bash
-# Start development mode
-make dev
-
-# Format code
-make format
+# Build for development
+make build
 
 # Run tests
 make test
+
+# Interactive debugging
+make shell
 ```
 
-### Production
+### Troubleshooting
 ```bash
-# Build and deploy
-make deploy-build
-make deploy-push REGISTRY=myregistry
-make deploy
+# Check system status
+make check-prerequisites
+
+# Rebuild everything
+make clean
+make build-no-cache
+make setup
+
+# View logs
+make logs
 ```
 
-## 🔍 Troubleshooting
+## 🔧 Advanced Usage
+
+### Custom Parameters
+```bash
+# Use specific model
+make transcribe VIDEO=video.mp4 MODEL=medium
+
+# Verbose output
+make transcribe-verbose VIDEO=video.mp4 MODEL=base
+
+# Custom output format (via Docker)
+docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
+    -i /app/input/video.mp4 \
+    -m base \
+    -f json \
+    -o /app/output/video.json
+```
+
+### Environment Variables
+```bash
+# Override Docker Compose file
+export DOCKER_COMPOSE_FILE=docker-compose.dev.yml
+make build
+
+# Set custom model path
+export WHISPER_MODEL_PATH=/custom/path
+make transcribe VIDEO=video.mp4
+```
+
+### Parallel Processing
+```bash
+# Process multiple files in parallel
+parallel -j 2 make transcribe VIDEO={} MODEL=base ::: input/*.mp4
+```
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-**"WHISPER_CPP_PATH not set"**
-```bash
-# Set the environment variable
-export WHISPER_CPP_PATH=/path/to/whisper.cpp
-
-# Verify it's set
-echo $WHISPER_CPP_PATH
-```
-
-**"Please specify VIDEO file"**
-```bash
-# Use the VIDEO parameter
-make transcribe VIDEO=my_video.mp4
-```
-
-**Docker build fails**
-```bash
-# Clean build
-make build-no-cache
-
-# Check prerequisites
-make check-prerequisites
-```
-
-**Permission issues**
+**"Permission denied" errors:**
 ```bash
 # Fix permissions
 chmod 755 input output temp
-sudo chown -R $USER:$USER .
+chown -R $USER:$USER .
 ```
 
-### Debugging Commands
+**Docker build failures:**
+```bash
+# Clean rebuild
+make clean
+make build-no-cache
+```
 
+**"Model not found" errors:**
+```bash
+# Rebuild image (includes model download)
+make build-no-cache
+make setup
+```
+
+**"No such option: -i" errors:**
+```bash
+# Use correct CLI structure
+make transcribe VIDEO=video.mp4 MODEL=base
+# NOT: make transcribe -i video.mp4
+```
+
+### Debug Commands
 ```bash
 # Check system status
-make status
+make check-prerequisites
 
-# Validate setup
-make validate
+# View container logs
+make logs
 
-# Show detailed info
-make info
+# Interactive debugging
+make shell
 
-# Debug make variables
-make debug
+# Test individual components
+make test-ffmpeg
+make test-whisper
 ```
 
-## 📊 Performance Tips
-
-### Optimizing Transcription
-```bash
-# Use smaller model for speed
-make download-model MODEL=tiny
-make transcribe VIDEO=input.mp4
-
-# Use larger model for accuracy
-make download-model MODEL=large
-make transcribe VIDEO=input.mp4
-
-# Benchmark performance
-make benchmark VIDEO=input.mp4
-```
-
-### Resource Management
-```bash
-# Check memory usage
-make memory-check
-
-# Clean up resources
-make clean
-make clean-docker
-```
-
-## 🔄 Integration with CI/CD
-
-### GitHub Actions Example
-```yaml
-name: Build and Test
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup
-        run: make setup-quick
-      - name: Build
-        run: make build
-      - name: Test
-        run: make ci-test
-```
-
-### Local CI Testing
-```bash
-# Run CI build locally
-make ci-build
-
-# Run CI tests locally
-make ci-test
-```
-
-## 📚 Related Documentation
+## 📚 Additional Resources
 
 - **[README.md](README.md)** - Complete project documentation
-- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - Developer guide
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Command reference
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Issue resolution
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Command cheat sheet
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - Development workflow
 
 ---
 
-**Happy Transcribing! 🎬📝**
-
-This Makefile guide provides everything you need to effectively manage the Local Video Transcriber project using simple, consistent commands. 
+**Need help?** Run `make help` to see all available commands! 

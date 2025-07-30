@@ -3,46 +3,44 @@
 ## 🚀 One-Minute Setup
 
 ```bash
-# 1. Install Whisper.cpp
-git clone https://github.com/ggerganov/whisper.cpp.git
-cd whisper.cpp && make
-bash ./models/download-ggml-model.sh base
+# 1. Clone and setup (everything included)
+git clone <repository-url>
+cd local-transcriber
+make setup
 
-# 2. Setup project
-export WHISPER_CPP_PATH=/path/to/whisper.cpp
-make setup-quick
-make build
-
-# 3. Transcribe
-make transcribe VIDEO=video.mp4
+# 2. Transcribe your first video
+cp /path/to/your/video.mp4 input/
+make transcribe VIDEO=video.mp4 MODEL=base
 ```
 
 ## 📋 Essential Commands
 
 ### Basic Usage
 ```bash
-# Transcribe video
-make transcribe VIDEO=video.mp4
+# Transcribe video (recommended)
+make transcribe VIDEO=video.mp4 MODEL=base
 
 # Generate subtitles
-make transcribe-srt VIDEO=video.mp4
+make transcribe-srt VIDEO=video.mp4 MODEL=small
 
-# Batch process
+# Batch process all videos
 make transcribe-batch
 
-# Or traditional Docker commands
-docker-compose run --rm transcriber python3 transcriber.py \
+# Or direct Docker commands
+docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
     -i /app/input/video.mp4 \
-    -m /opt/whisper.cpp/models/ggml-base.bin
+    -m base \
+    -o /app/output/transcript.txt
 ```
 
 ### Model Management
 ```bash
-# Download models
-cd /path/to/whisper.cpp
-bash ./models/download-ggml-model.sh base    # ~1GB
-bash ./models/download-ggml-model.sh small   # ~500MB
-bash ./models/download-ggml-model.sh large   # ~3GB
+# List available models
+make show-models
+
+# Download additional models (optional)
+make download-model MODEL=small
+make download-model MODEL=medium
 ```
 
 ### Docker Operations
@@ -70,166 +68,102 @@ docker-compose run --rm transcriber bash
 
 ### Environment Variables
 ```bash
-export WHISPER_CPP_PATH=/path/to/whisper.cpp
-export WHISPER_CPP_DIR=/opt/whisper.cpp  # Container path
+# No environment variables needed for basic usage
+# Whisper.cpp is built inside the container
+# Models are pre-downloaded during Docker build
 ```
 
 ### Volume Mounts
 ```yaml
-# docker-compose.yml
+# docker-compose.yml (automatically configured)
 volumes:
   - ./input:/app/input:ro          # Video files
   - ./output:/app/output           # Results
   - ./temp:/app/temp               # Temporary files
-  - ${WHISPER_CPP_PATH}:/opt/whisper.cpp  # Whisper.cpp
+  - ./src:/app/src                 # Source code (development)
 ```
 
 ## 📊 Model Comparison
 
 | Model | Size | Speed | Accuracy | Use Case |
 |-------|------|-------|----------|----------|
-| `tiny` | ~75MB | Fastest | Basic | Testing |
-| `base` | ~1GB | Fast | Good | General |
-| `small` | ~500MB | Medium | Better | Balanced |
-| `medium` | ~1.5GB | Slower | High | Professional |
-| `large` | ~3GB | Slowest | Best | High accuracy |
+| `tiny` | 39 MB | ⚡⚡⚡ | Basic | Testing |
+| `base` | 142 MB | ⚡⚡ | Good | **General** ✅ |
+| `small` | 466 MB | ⚡ | Better | Balanced |
+| `medium` | 1.5 GB | 🐌 | High | Professional |
+| `large` | 2.9 GB | 🐌🐌 | Best | High accuracy |
 
 ## 🌍 Language Support
 
 ```bash
-# Auto-detect language
-docker-compose run --rm transcriber python3 transcriber.py \
-    -i /app/input/video.mp4 -m /opt/whisper.cpp/models/ggml-base.bin
+# Auto-detect language (default)
+make transcribe VIDEO=video.mp4 MODEL=base
 
 # Specify language
-docker-compose run --rm transcriber python3 transcriber.py \
-    -i /app/input/video.mp4 -m /opt/whisper.cpp/models/ggml-base.bin \
-    -l en  # en, es, fr, de, zh, ja, ko, etc.
+make transcribe VIDEO=video.mp4 MODEL=base LANGUAGE=en
+make transcribe VIDEO=video.mp4 MODEL=base LANGUAGE=es
+make transcribe VIDEO=video.mp4 MODEL=base LANGUAGE=fr
 ```
 
-## 📄 Output Formats
+## 📝 Output Formats
 
 ```bash
--f txt   # Plain text
--f srt   # SubRip subtitles
--f vtt   # WebVTT
--f json  # Structured data
+# Plain text (default)
+make transcribe VIDEO=video.mp4 MODEL=base
+
+# Subtitles for video editing
+make transcribe-srt VIDEO=video.mp4 MODEL=base
+
+# Web video subtitles
+docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
+    -i /app/input/video.mp4 \
+    -m base \
+    -f vtt \
+    -o /app/output/video.vtt
+
+# Detailed JSON with timestamps
+docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
+    -i /app/input/video.mp4 \
+    -m base \
+    -f json \
+    -o /app/output/video.json
 ```
 
-## 🐛 Troubleshooting
+## 🚀 Advanced Usage
+
+### Verbose Output
+```bash
+make transcribe-verbose VIDEO=video.mp4 MODEL=base
+```
+
+### Keep Audio Files
+```bash
+docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
+    -i /app/input/video.mp4 \
+    -m base \
+    -k \
+    -o /app/output/transcript.txt
+```
+
+### Custom Temp Directory
+```bash
+docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
+            -i /app/input/video.mp4 \
+    -m base \
+    -t /app/temp/custom \
+    -o /app/output/transcript.txt
+```
+
+### Performance Testing
+```bash
+make benchmark VIDEO=video.mp4 MODEL=base
+```
+
+## 🔍 Troubleshooting
 
 ### Common Issues
-
-**Docker build fails:**
 ```bash
-docker-compose build --no-cache
-```
-
-**Whisper.cpp not found:**
-```bash
-echo $WHISPER_CPP_PATH
-ls -la $WHISPER_CPP_PATH/main
-```
-
-**Model not found:**
-```bash
-ls -la $WHISPER_CPP_PATH/models/ggml-base.bin
-cd $WHISPER_CPP_PATH && bash ./models/download-ggml-model.sh base
-```
-
-**Permission issues:**
-```bash
-chmod 755 input output temp
-```
-
-**Memory issues:**
-```bash
-# Use smaller model
--m /opt/whisper.cpp/models/ggml-tiny.bin
-```
-
-### Performance Tuning
-
-```bash
-# Increase Docker memory
-# Docker Desktop: Settings > Resources > Memory > 8GB
-
-# Use parallel processing
-parallel -j 2 docker-compose run --rm transcriber python3 transcriber.py \
-    -i /app/input/{} -m /opt/whisper.cpp/models/ggml-base.bin \
-    -o /app/output/{.}.txt ::: input/*.mp4
-```
-
-## 🔄 CI/CD Integration
-
-### GitHub Actions
-```yaml
-name: Transcribe
-on: [push]
-jobs:
-  transcribe:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build
-        run: docker-compose build
-      - name: Transcribe
-        run: |
-          docker-compose run --rm transcriber python3 transcriber.py \
-            -i /app/input/video.mp4 \
-            -m /opt/whisper.cpp/models/ggml-base.bin
-```
-
-### Docker Registry
-```bash
-# Build and push
-docker build -t myregistry/local-transcriber:latest .
-docker push myregistry/local-transcriber:latest
-
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-## 📚 API Reference
-
-### Command Line
-```bash
-python3 transcriber.py [OPTIONS]
-
-Options:
-  -i, --input TEXT                Input video file [required]
-  -m, --model TEXT                Whisper model file [required]
-  -o, --output TEXT               Output file (auto-generated)
-  -l, --language TEXT             Language code (en, es, fr, etc.)
-  -f, --format [txt|srt|vtt|json] Output format
-  -k, --keep-audio                Keep extracted audio
-  -v, --verbose                   Verbose output
-```
-
-### Python API
-```python
-from transcriber import VideoTranscriber
-
-transcriber = VideoTranscriber()
-result = transcriber.transcribe_video(
-    "input/video.mp4",
-    "/opt/whisper.cpp/models/ggml-base.bin",
-    output_file="output/transcript.txt",
-    language="en",
-    format="txt"
-)
-```
-
-## 🆘 Getting Help
-
-```bash
-# Show help
-make help
-
-# Test application
-make test-help
-
-# Check system info
+# Check prerequisites
 make check-prerequisites
 
 # View logs
@@ -238,29 +172,52 @@ make logs
 # Interactive debugging
 make shell
 
-# Or traditional commands
-docker-compose run --rm transcriber python3 transcriber.py --help
-docker --version
-docker-compose --version
-echo $WHISPER_CPP_PATH
-docker-compose logs transcriber
-docker-compose run --rm transcriber bash
+# Clean and rebuild
+make clean
+make build-no-cache
 ```
 
-## 📁 Project Structure
+### Reset Everything
+```bash
+make clean
+docker-compose down
+docker system prune -f
+make setup
+```
+
+## 📁 File Structure
 
 ```
 local-transcriber/
-├── Dockerfile                 # Container definition
-├── docker-compose.yml         # Orchestration
-├── Makefile                   # Project management
-├── transcriber.py            # Main application
-├── setup-guide.sh            # Interactive setup
-├── input/                    # Video files
-├── output/                   # Results
-└── temp/                     # Temporary files
+├── input/                    # 📁 Add videos here
+├── output/                   # 📄 Results here
+├── temp/                     # 🔧 Auto-cleaned
+├── src/                      # 🐍 Source code
+├── scripts/                  # 🔧 Automation
+├── docs/                     # 📚 Documentation
+├── Makefile                  # ⚡ 40+ commands
+└── docker-compose.yml        # 🐳 Container config
+```
+
+## 🎯 Quick Examples
+
+```bash
+# Test with tiny model (fastest)
+make transcribe VIDEO=test.mp4 MODEL=tiny
+
+# General purpose (recommended)
+make transcribe VIDEO=meeting.mp4 MODEL=base
+
+# High quality for important content
+make transcribe VIDEO=presentation.mp4 MODEL=small
+
+# Professional quality
+make transcribe VIDEO=interview.mp4 MODEL=medium
+
+# Batch process everything
+make transcribe-batch
 ```
 
 ---
 
-**Need more help?** See `README.md` for comprehensive documentation or `MAKEFILE_GUIDE.md` for Makefile details. 
+**Need help?** Check `docs/TROUBLESHOOTING.md` or run `make help` 

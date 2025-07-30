@@ -41,10 +41,73 @@ help: ## Show this help message
 
 # Setup targets
 .PHONY: setup
-setup: ## Complete project setup (interactive) 
+setup: ## Complete project setup (Docker-first approach)
 	@echo -e "$(BLUE)[INFO]$(NC) Starting complete project setup..."
-	@chmod +x ./scripts/setup-guide.sh
-	@./scripts/setup-guide.sh
+	@echo -e "$(CYAN)╔══════════════════════════════════════════════════════════════╗$(NC)"
+	@echo -e "$(CYAN)║                    Local Video Transcriber                   ║$(NC)"
+	@echo -e "$(CYAN)║                        Setup Guide                           ║$(NC)"
+	@echo -e "$(CYAN)╚══════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo -e "$(BLUE)System Requirements Check$(NC)"
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo -e "$(GREEN)[SUCCESS]$(NC) OS: $(shell uname -s) detected"
+	@echo -e "$(GREEN)[SUCCESS]$(NC) RAM: $(shell sysctl -n hw.memsize 2>/dev/null | awk '{print int($$1/1024/1024/1024)}' || echo "Unknown")GB (Minimum 4GB required)"
+	@echo -e "$(GREEN)[SUCCESS]$(NC) Disk space: $(shell df -h . | tail -1 | awk '{print $$4}') available (Minimum 5GB required)"
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo -e "$(BLUE)Prerequisites Check$(NC)"
+	@echo -e "$(BLUE)================================$(NC)"
+	@docker --version >/dev/null 2>&1 && echo -e "$(GREEN)[SUCCESS]$(NC) Docker: $(shell docker --version | cut -d' ' -f3)" || echo -e "$(RED)[ERROR]$(NC) Docker not found"
+	@docker-compose --version >/dev/null 2>&1 && echo -e "$(GREEN)[SUCCESS]$(NC) Docker Compose: $(shell docker-compose --version | cut -d' ' -f3)" || echo -e "$(RED)[ERROR]$(NC) Docker Compose not found"
+	@git --version >/dev/null 2>&1 && echo -e "$(GREEN)[SUCCESS]$(NC) Git: $(shell git --version | cut -d' ' -f3)" || echo -e "$(RED)[ERROR]$(NC) Git not found"
+	@make --version >/dev/null 2>&1 && echo -e "$(GREEN)[SUCCESS]$(NC) Make: $(shell make --version | head -n1 | cut -d' ' -f3)" || echo -e "$(RED)[ERROR]$(NC) Make not found"
+	@echo -e "$(GREEN)[SUCCESS]$(NC) All prerequisites are installed!"
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo -e "$(BLUE)Project Setup$(NC)"
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo -e "$(BLUE)[INFO]$(NC) Creating directories..."
+	@mkdir -p input output temp
+	@chmod 755 input output temp
+	@echo -e "$(BLUE)[INFO]$(NC) Building Docker image..."
+	@docker-compose build
+	@if [ $$? -eq 0 ]; then \
+		echo -e "$(GREEN)[SUCCESS]$(NC) Docker image built successfully!"; \
+	else \
+		echo -e "$(RED)[ERROR]$(NC) Docker build failed!"; \
+		exit 1; \
+	fi
+	@echo -e "$(BLUE)[INFO]$(NC) Testing installation..."
+	@docker-compose run --rm transcriber python3 -m src.transcriber --help > /dev/null 2>&1
+	@if [ $$? -eq 0 ]; then \
+		echo -e "$(GREEN)[SUCCESS]$(NC) Installation test passed!"; \
+	else \
+		echo -e "$(RED)[ERROR]$(NC) Installation test failed!"; \
+		exit 1; \
+	fi
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo -e "$(BLUE)Usage Examples$(NC)"
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo ""
+	@echo "Basic transcription:"
+	@echo "  make transcribe VIDEO=my_video.mp4 MODEL=base"
+	@echo ""
+	@echo "Generate subtitles:"
+	@echo "  make transcribe-srt VIDEO=my_video.mp4 MODEL=small"
+	@echo ""
+	@echo "Batch processing:"
+	@echo "  make transcribe-batch"
+	@echo ""
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo -e "$(BLUE)Next Steps$(NC)"
+	@echo -e "$(BLUE)================================$(NC)"
+	@echo ""
+	@echo "1. Add your video files to the 'input' directory"
+	@echo "2. Run transcription commands (see examples above)"
+	@echo "3. Check the 'output' directory for results"
+	@echo ""
+	@echo "For more information, see the README.md file"
+	@echo ""
+	@echo "Happy transcribing! 🎬📝"
 
 .PHONY: setup-quick
 setup-quick: ## Quick setup (non-interactive)
@@ -52,12 +115,9 @@ setup-quick: ## Quick setup (non-interactive)
 	@mkdir -p input output temp
 	@chmod 755 input output temp
 	@echo -e "$(GREEN)[SUCCESS]$(NC) Directories created"
-	@if [ -z "$(WHISPER_CPP_PATH)" ]; then \
-		echo -e "$(YELLOW)[WARNING]$(NC) WHISPER_CPP_PATH not set"; \
-		echo "Please set: export WHISPER_CPP_PATH=/path/to/whisper.cpp"; \
-	else \
-		echo -e "$(GREEN)[SUCCESS]$(NC) WHISPER_CPP_PATH is set: $(WHISPER_CPP_PATH)"; \
-	fi
+	@echo -e "$(BLUE)[INFO]$(NC) Building Docker image..."
+	@docker-compose build
+	@echo -e "$(GREEN)[SUCCESS]$(NC) Setup complete! Ready to transcribe."
 
 .PHONY: check-prerequisites
 check-prerequisites: ## Check system prerequisites
@@ -75,16 +135,11 @@ check-prerequisites: ## Check system prerequisites
 	@echo "=== Make ==="
 	@make --version | head -n1 || echo -e "$(RED)[ERROR]$(NC) Make not found"
 	@echo ""
-	@echo "=== Whisper.cpp ==="
-	@if [ -n "$(WHISPER_CPP_PATH)" ]; then \
-		echo "WHISPER_CPP_PATH: $(WHISPER_CPP_PATH)"; \
-		if [ -f "$(WHISPER_CPP_PATH)/main" ]; then \
-			echo -e "$(GREEN)[SUCCESS]$(NC) Whisper.cpp found"; \
-		else \
-			echo -e "$(RED)[ERROR]$(NC) Whisper.cpp main executable not found"; \
-		fi; \
+	@echo "=== Docker Image ==="
+	@if docker images | grep -q "$(DOCKER_IMAGE)"; then \
+		echo -e "$(GREEN)[SUCCESS]$(NC) Docker image found"; \
 	else \
-		echo -e "$(YELLOW)[WARNING]$(NC) WHISPER_CPP_PATH not set"; \
+		echo -e "$(YELLOW)[WARNING]$(NC) Docker image not found. Run 'make build' to create it."; \
 	fi
 
 # Docker targets
@@ -160,7 +215,7 @@ transcribe: ## Transcribe a video file (usage: make transcribe VIDEO=input.mp4 M
 	@docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
 		-i "/app/input/$(VIDEO)" \
 		-m "$(MODEL)" \
-		-o "/app/output/$(VIDEO:.mp4=.txt)"
+		-o "/app/output/$(basename $(VIDEO) .$(suffix $(VIDEO))).txt"
 
 .PHONY: transcribe-srt
 transcribe-srt: ## Transcribe to SRT format (usage: make transcribe-srt VIDEO=input.mp4 MODEL=base)
@@ -177,7 +232,7 @@ transcribe-srt: ## Transcribe to SRT format (usage: make transcribe-srt VIDEO=in
 		-i "/app/input/$(VIDEO)" \
 		-m "$(MODEL)" \
 		-f srt \
-		-o "/app/output/$(VIDEO:.mp4=.srt)"
+		-o "/app/output/$(basename $(VIDEO) .$(suffix $(VIDEO))).srt"
 
 .PHONY: transcribe-batch
 transcribe-batch: ## Batch transcribe all videos in input directory
@@ -199,7 +254,7 @@ transcribe-verbose: ## Transcribe with verbose output (usage: make transcribe-ve
 	@docker-compose run --rm transcriber python3 -m src.transcriber transcribe \
 		-i "/app/input/$(VIDEO)" \
 		-m "$(MODEL)" \
-		-o "/app/output/$(VIDEO:.mp4=.txt)" \
+		-o "/app/output/$(basename $(VIDEO) .$(suffix $(VIDEO))).txt" \
 		-v
 
 # Model management targets

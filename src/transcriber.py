@@ -54,9 +54,14 @@ class VideoTranscriber:
         # Check environment variable first (for containerized environments)
         whisper_dir = os.environ.get('WHISPER_CPP_DIR')
         if whisper_dir:
-            container_path = os.path.join(whisper_dir, "main")
-            if os.path.isfile(container_path) and os.access(container_path, os.X_OK):
-                return container_path
+            # Prioritize whisper-cli over main
+            whisper_cli_path = os.path.join(whisper_dir, "whisper-cli")
+            if os.path.isfile(whisper_cli_path) and os.access(whisper_cli_path, os.X_OK):
+                return whisper_cli_path
+            # Fallback to main
+            main_path = os.path.join(whisper_dir, "main")
+            if os.path.isfile(main_path) and os.access(main_path, os.X_OK):
+                return main_path
         
         possible_paths = [
             # Container paths (preferred) - whisper-cli first
@@ -136,8 +141,8 @@ class VideoTranscriber:
             raise FileNotFoundError(
                 f"Model file not found: {model_name_or_path}\n"
                 f"Available models: {', '.join(config.WHISPER_MODELS.keys())}"
-            )
-
+        )
+    
     def _check_dependencies(self) -> None:
         """Check if required dependencies are available."""
         # Check FFmpeg

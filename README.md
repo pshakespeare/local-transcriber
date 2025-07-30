@@ -13,7 +13,7 @@ docker --version && docker-compose --version && make --version
 ### 2. Setup Project
 ```bash
 # Clone this repository
-git clone <repository-url>
+git clone https://github.com/pshakespeare/local-transcriber.git
 cd local-transcriber
 
 # Run the complete setup (builds Docker image with Whisper.cpp included)

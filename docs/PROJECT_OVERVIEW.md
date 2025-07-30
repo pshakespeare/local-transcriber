@@ -19,8 +19,8 @@ The Local Video Transcriber is a containerized Python application designed to pr
 │           │                       │                      │      │
 │           ▼                       ▼                      ▼      │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐  │
-│  │   Whisper.cpp   │    │   Python App    │    │   Results   │  │
-│  │   (Local)       │    │   (Container)   │    │   (TXT/SRT) │  │
+│  │   Volume Mounts │    │   Python App    │    │   Results   │  │
+│  │   (input/output)│    │   (Container)   │    │   (TXT/SRT) │  │
 │  └─────────────────┘    └─────────────────┘    └─────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -34,13 +34,13 @@ The Local Video Transcriber is a containerized Python application designed to pr
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐  │
 │  │   FFmpeg        │    │   Whisper.cpp   │    │   Python    │  │
 │  │   (Audio        │───▶│   (Transcription)│───▶│   App       │  │
-│  │   Extraction)   │    │                 │    │   (CLI)     │  │
+│  │   Extraction)   │    │   (Built-in)    │    │   (CLI)     │  │
 │  └─────────────────┘    └─────────────────┘    └─────────────┘  │
 │           │                       │                      │      │
 │           ▼                       ▼                      ▼      │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐  │
 │  │   WAV Audio     │    │   AI Models     │    │   Output    │  │
-│  │   (16kHz, Mono) │    │   (GGML)        │    │   Formats   │  │
+│  │   (16kHz, Mono) │    │   (Pre-loaded)  │    │   Formats   │  │
 │  └─────────────────┘    └─────────────────┘    └─────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -83,269 +83,259 @@ local-transcriber/
 │   ├── README.md              # Comprehensive guide
 │   ├── QUICK_REFERENCE.md     # Quick commands
 │   ├── TROUBLESHOOTING.md     # Issue resolution
+│   ├── DEVELOPER_GUIDE.md     # Developer workflow
+│   ├── MAKEFILE_GUIDE.md      # Makefile reference
 │   └── PROJECT_OVERVIEW.md    # This file
 │
 ├── 🐳 Docker Configuration
 │   ├── Dockerfile             # Container definition
 │   ├── docker-compose.yml     # Orchestration
-│   ├── .dockerignore          # Build exclusions
-│   └── docker-setup.sh        # Setup automation
+│   └── .dockerignore          # Build exclusions
 │
 ├── 🐍 Python Application
-│   ├── transcriber.py         # Main application
-│   ├── config.py              # Configuration
-│   ├── setup_whisper.py       # Whisper.cpp setup
-│   ├── example.py             # Usage examples
-│   ├── quick_start.py         # Interactive setup
+│   ├── src/
+│   │   ├── __init__.py        # Package initialization
+│   │   ├── transcriber.py     # Main application
+│   │   └── config.py          # Configuration
+│   ├── tests/
+│   │   ├── __init__.py        # Test package
+│   │   └── test_transcriber.py # Unit tests
 │   └── requirements.txt       # Dependencies
+│
+├── 🔧 Automation
+│   ├── Makefile               # 40+ project commands
+│   └── scripts/               # Automation scripts
 │
 ├── 📁 Data Directories
 │   ├── input/                 # Video input files
 │   ├── output/                # Transcription results
 │   └── temp/                  # Temporary files
 │
-└── 🔧 Utility Scripts
-    ├── setup-guide.sh         # Interactive setup
-    └── docker-batch.sh        # Batch processing
+└── 📋 Configuration
+    ├── setup.py               # Python package setup
+    ├── pyproject.toml         # Modern Python config
+    └── .pre-commit-config.yaml # Code quality hooks
 ```
 
 ## 🔄 Data Flow
 
 ### 1. Input Processing
 ```
-Video File (MP4) → FFmpeg → WAV Audio (16kHz, Mono, 16-bit PCM)
+Video File (MP4/M4A/AVI/MOV/MKV/WebM)
+    ↓
+FFmpeg Audio Extraction
+    ↓
+WAV Audio (16kHz, Mono, 16-bit PCM)
 ```
 
 ### 2. Transcription Pipeline
 ```
-WAV Audio → Whisper.cpp → Raw Transcription → Format Conversion → Output File
+WAV Audio
+    ↓
+Whisper.cpp Processing
+    ↓
+Raw Transcription Text
+    ↓
+Format Conversion (TXT/SRT/VTT/JSON)
+    ↓
+Output File
 ```
 
-### 3. Output Generation
+### 3. Container Workflow
 ```
-Raw Text → Format Processing → TXT/SRT/VTT/JSON → File Output
+Host Input Directory
+    ↓ (Volume Mount)
+Container /app/input/
+    ↓
+Python Application
+    ↓
+FFmpeg + Whisper.cpp
+    ↓
+Container /app/output/
+    ↓ (Volume Mount)
+Host Output Directory
 ```
 
-## 🎛️ Configuration Management
+## 🎯 Key Features
+
+### Core Functionality
+- **🎬 Multi-format Support**: MP4, M4A, AVI, MOV, MKV, WebM
+- **🎤 Local AI Transcription**: Whisper.cpp with 99+ languages
+- **📝 Multiple Output Formats**: TXT, SRT, VTT, JSON
+- **🐳 Containerized**: Docker-first approach for consistency
+- **⚡ Performance Optimized**: Efficient audio processing pipeline
+
+### Developer Experience
+- **🚀 One-command Setup**: `make setup` for complete installation
+- **🔧 40+ Make Commands**: Comprehensive project management
+- **📚 Extensive Documentation**: Multiple guides for different use cases
+- **🧪 Testing Suite**: Unit and integration tests
+- **🔍 Debugging Tools**: Verbose output and interactive shell
+
+### Production Ready
+- **🔒 Security**: Non-root container execution
+- **📊 Monitoring**: Resource usage tracking
+- **🔄 CI/CD Ready**: GitHub Actions integration
+- **📦 Package Management**: Modern Python packaging
+- **🎯 Quality Assurance**: Pre-commit hooks and linting
+
+## 🏗️ Architecture Decisions
+
+### Docker-First Approach
+**Why Docker?**
+- **Consistency**: Same environment across development and production
+- **Isolation**: No conflicts with host system dependencies
+- **Portability**: Works on any system with Docker
+- **Simplicity**: No manual Whisper.cpp installation required
+
+### Whisper.cpp Integration
+**Why Built-in?**
+- **Reliability**: No architecture mismatch issues
+- **Performance**: Optimized for container environment
+- **Maintenance**: Automatic updates with container rebuilds
+- **User Experience**: Zero manual setup required
+
+### Makefile-Driven Development
+**Why Make?**
+- **Simplicity**: Single command for complex operations
+- **Consistency**: Standardized workflow across team
+- **Documentation**: Self-documenting commands
+- **Automation**: Reduces manual steps and errors
+
+## 🔧 Configuration Management
 
 ### Environment Variables
-
-| Variable | Default | Description | Usage |
-|----------|---------|-------------|-------|
-| `WHISPER_CPP_PATH` | None | Host path to Whisper.cpp | Volume mounting |
-| `WHISPER_CPP_DIR` | `/opt/whisper.cpp` | Container path | Application config |
-| `CONTAINER_TEMP_DIR` | `/app/temp` | Temp directory | File processing |
+```bash
+# Optional overrides
+DOCKER_COMPOSE_FILE=docker-compose.dev.yml
+PYTHONPATH=/app/src
+```
 
 ### Volume Mounts
+```yaml
+volumes:
+  - ./input:/app/input:ro          # Read-only input
+  - ./output:/app/output           # Writable output
+  - ./temp:/app/temp               # Temporary files
+  - ./src:/app/src                 # Development mount
+```
 
-| Host Path | Container Path | Access | Purpose |
-|-----------|----------------|--------|---------|
-| `./input` | `/app/input` | Read-only | Video files |
-| `./output` | `/app/output` | Read/Write | Results |
-| `./temp` | `/app/temp` | Read/Write | Temporary files |
-| `$WHISPER_CPP_PATH` | `/opt/whisper.cpp` | Read-only | Whisper.cpp installation |
+### Model Management
+- **Pre-loaded Models**: Base model included in Docker image
+- **Dynamic Download**: Additional models available on-demand
+- **Custom Models**: Support for user-provided model files
 
-## 🔐 Security Considerations
-
-### Container Security
-- **Non-root User**: Application runs as `transcriber` user (UID 1000)
-- **Read-only Mounts**: Input directory mounted read-only
-- **Minimal Base Image**: Ubuntu 22.04 with minimal packages
-- **No Network Access**: Container operates offline for transcription
-
-### Data Privacy
-- **Local Processing**: All transcription happens locally
-- **No API Calls**: No external services required
-- **Temporary Files**: Audio files cleaned up automatically
-- **Volume Isolation**: Data isolated in mounted volumes
-
-## 📊 Performance Characteristics
+## 🚀 Performance Characteristics
 
 ### Resource Requirements
+| Component | Minimum | Recommended | High Performance |
+|-----------|---------|-------------|------------------|
+| **RAM** | 4GB | 8GB | 16GB+ |
+| **CPU** | 2 cores | 4 cores | 8+ cores |
+| **Storage** | 5GB | 10GB | 20GB+ |
+| **Network** | None (local) | None (local) | None (local) |
 
-| Component | Minimum | Recommended | Notes |
-|-----------|---------|-------------|-------|
-| **RAM** | 4GB | 8GB+ | Model loading and processing |
-| **CPU** | 2 cores | 4+ cores | Parallel processing |
-| **Storage** | 5GB | 10GB+ | Models + temporary files |
-| **Network** | None | None | Offline operation |
+### Processing Speed
+| Model | Speed | Memory | Use Case |
+|-------|-------|--------|----------|
+| `tiny` | ~2x real-time | ~1GB | Quick drafts |
+| `base` | ~1.5x real-time | ~2GB | General purpose |
+| `small` | ~1x real-time | ~3GB | Balanced |
+| `medium` | ~0.7x real-time | ~4GB | Professional |
+| `large` | ~0.5x real-time | ~6GB | High accuracy |
 
-### Performance Metrics
+## 🔒 Security Considerations
 
-| Model | Size | Speed | Memory | Accuracy |
-|-------|------|-------|--------|----------|
-| `tiny` | ~75MB | ~2x real-time | ~1GB | Basic |
-| `base` | ~1GB | ~1x real-time | ~2GB | Good |
-| `small` | ~500MB | ~0.8x real-time | ~1.5GB | Better |
-| `medium` | ~1.5GB | ~0.5x real-time | ~3GB | High |
-| `large` | ~3GB | ~0.3x real-time | ~4GB | Best |
+### Container Security
+- **Non-root User**: Container runs as `transcriber` user (UID 1000)
+- **Read-only Input**: Input directory mounted as read-only
+- **Minimal Base Image**: Ubuntu 22.04 with only necessary packages
+- **No Network Access**: Transcription works entirely offline
 
-## 🔄 CI/CD Integration
+### Data Privacy
+- **Local Processing**: All data stays on your machine
+- **No API Calls**: No external service dependencies
+- **Automatic Cleanup**: Temporary files removed after processing
+- **Volume Isolation**: Clear separation of input/output data
 
-### Build Pipeline
+## 📊 Monitoring & Observability
+
+### Application Metrics
+- **Processing Time**: Per-file transcription duration
+- **Success Rate**: Successful vs failed transcriptions
+- **Resource Usage**: CPU, memory, and disk utilization
+- **Error Tracking**: Detailed error logging and reporting
+
+### Debugging Capabilities
+- **Verbose Output**: Detailed processing information
+- **Interactive Shell**: Direct container access for debugging
+- **Log Aggregation**: Centralized logging through Docker
+- **Performance Profiling**: Built-in benchmarking tools
+
+## 🔄 Deployment Options
+
+### Local Development
+```bash
+# Complete setup
+make setup
+
+# Development workflow
+make build
+make test
+make transcribe VIDEO=test.mp4 MODEL=base
+```
+
+### Production Deployment
+```bash
+# Build production image
+make build-no-cache
+
+# Deploy to registry
+docker tag local-transcriber-transcriber:latest myregistry/local-transcriber:latest
+docker push myregistry/local-transcriber:latest
+
+# Deploy to production
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### CI/CD Integration
 ```yaml
-# GitHub Actions Example
-name: Build and Test
+# GitHub Actions
+name: CI
 on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Build Docker image
-        run: docker-compose build
-      - name: Run tests
-        run: docker-compose run --rm transcriber python3 -m pytest
+      - name: Build and test
+        run: |
+          make build
+          make test
+          make transcribe VIDEO=test.mp4 MODEL=tiny
 ```
 
-### Deployment Options
+## 🎯 Future Roadmap
 
-#### Local Development
-```bash
-# Development setup
-docker-compose build
-docker-compose run --rm transcriber python3 transcriber.py --help
-```
+### Planned Enhancements
+- **🎵 Audio-only Support**: Direct audio file processing
+- **📊 Batch Processing UI**: Web interface for batch operations
+- **🔧 Model Fine-tuning**: Custom model training capabilities
+- **🌐 Multi-language UI**: Internationalized user interface
+- **📱 Mobile Support**: iOS/Android companion apps
 
-#### Production Deployment
-```bash
-# Production build
-docker build -t myregistry/local-transcriber:latest .
-docker push myregistry/local-transcriber:latest
+### Performance Improvements
+- **⚡ GPU Acceleration**: CUDA/OpenCL support for faster processing
+- **🔄 Streaming Processing**: Real-time transcription capabilities
+- **📈 Parallel Processing**: Multi-file concurrent processing
+- **💾 Caching Layer**: Intelligent result caching
 
-# Production run
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-#### Kubernetes Deployment
-```yaml
-# Kubernetes manifest example
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: local-transcriber
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: local-transcriber
-  template:
-    metadata:
-      labels:
-        app: local-transcriber
-    spec:
-      containers:
-      - name: transcriber
-        image: myregistry/local-transcriber:latest
-        volumeMounts:
-        - name: input
-          mountPath: /app/input
-        - name: output
-          mountPath: /app/output
-        - name: whisper-cpp
-          mountPath: /opt/whisper.cpp
-```
-
-## 🧪 Testing Strategy
-
-### Unit Testing
-- **Python Modules**: pytest for application logic
-- **CLI Commands**: Click testing utilities
-- **Configuration**: Environment variable validation
-
-### Integration Testing
-- **Docker Build**: Container creation and startup
-- **Volume Mounts**: File system access verification
-- **End-to-End**: Complete transcription pipeline
-
-### Performance Testing
-- **Memory Usage**: Resource consumption monitoring
-- **Processing Speed**: Transcription time measurement
-- **Scalability**: Batch processing validation
-
-## 🔍 Monitoring and Logging
-
-### Logging Levels
-```python
-# Application logging
-import logging
-logging.basicConfig(level=logging.INFO)
-
-# Rich console output
-from rich.console import Console
-console = Console()
-```
-
-### Health Checks
-```yaml
-# Docker health check
-healthcheck:
-  test: ["CMD", "python3", "-c", "import transcriber; print('OK')"]
-  interval: 30s
-  timeout: 10s
-  retries: 3
-```
-
-### Metrics Collection
-- **Processing Time**: Transcription duration tracking
-- **Success Rate**: Error vs. success ratio
-- **Resource Usage**: CPU, memory, disk utilization
-
-## 🔄 Version Management
-
-### Semantic Versioning
-```
-MAJOR.MINOR.PATCH
-├── MAJOR: Breaking changes
-├── MINOR: New features, backward compatible
-└── PATCH: Bug fixes, backward compatible
-```
-
-### Dependency Management
-- **Python**: requirements.txt with pinned versions
-- **Docker**: Base image version pinning
-- **Whisper.cpp**: Git commit hash tracking
-
-## 🚀 Future Enhancements
-
-### Planned Features
-- **GPU Acceleration**: CUDA support for faster processing
-- **Batch Processing**: Queue-based job management
-- **Web Interface**: REST API and web UI
-- **Cloud Integration**: S3, GCS storage support
-- **Multi-language**: Parallel language processing
-
-### Technical Improvements
-- **Microservices**: Service decomposition
-- **Caching**: Model and result caching
-- **Streaming**: Real-time transcription
-- **Optimization**: Memory and performance tuning
-
-## 📚 Development Guidelines
-
-### Code Standards
-- **Python**: PEP 8 compliance
-- **Documentation**: Docstring and inline comments
-- **Testing**: Minimum 80% code coverage
-- **Type Hints**: Full type annotation
-
-### Git Workflow
-```bash
-# Feature development
-git checkout -b feature/new-feature
-# Development work
-git add .
-git commit -m "feat: add new feature"
-git push origin feature/new-feature
-# Create pull request
-```
-
-### Code Review Process
-1. **Automated Checks**: Linting, testing, security scanning
-2. **Manual Review**: Code quality and architecture review
-3. **Integration Testing**: End-to-end validation
-4. **Documentation**: README and API documentation updates
+### Developer Experience
+- **🔧 Plugin System**: Extensible architecture for custom formats
+- **📚 API Interface**: RESTful API for integration
+- **🎨 Web Dashboard**: Management interface for large-scale deployments
+- **🔍 Advanced Analytics**: Detailed processing insights
 
 ---
 
-This project overview provides a comprehensive understanding of the Local Video Transcriber architecture, design decisions, and technical implementation details for developers and DevOps engineers. 
+This project overview provides a comprehensive understanding of the Local Video Transcriber's architecture, design decisions, and capabilities. For detailed implementation information, refer to the specific documentation files in the `docs/` directory. 
