@@ -20,6 +20,9 @@ make transcribe VIDEO=video.mp4 MODEL=base
 # Transcribe video (recommended)
 make transcribe VIDEO=video.mp4 MODEL=base
 
+# Transcribe audio file (M4A, MP3, etc.)
+make transcribe VIDEO=audio.m4a MODEL=base
+
 # Generate subtitles
 make transcribe-srt VIDEO=video.mp4 MODEL=small
 
@@ -110,6 +113,20 @@ make transcribe VIDEO=video.mp4 MODEL=base LANGUAGE=fr
 ```bash
 # Plain text (default)
 make transcribe VIDEO=video.mp4 MODEL=base
+```
+
+## 📁 Output File Naming
+
+```bash
+# Input files and their output
+video.mp4    → video.txt
+audio.m4a    → audio.txt
+presentation.mov → presentation.txt
+meeting.avi  → meeting.txt
+
+# All output files use .txt extension regardless of input format
+# SRT files use .srt extension: video.mp4 → video.srt
+```
 
 # Subtitles for video editing
 make transcribe-srt VIDEO=video.mp4 MODEL=base

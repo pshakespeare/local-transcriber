@@ -14,16 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MIT License
 - Contributing guidelines
 - Project changelog
+- Robust output filename handling for all video/audio formats
 
 ### Changed
 - Simplified Docker approach (user installs Whisper.cpp manually)
 - Improved error handling and validation
 - Enhanced documentation structure
+- Updated Makefile to handle all input file extensions correctly
 
 ### Fixed
 - Docker build issues with Whisper.cpp compilation
 - Permission issues in container
 - Volume mount configuration
+- Output filename generation for non-MP4 files (M4A, MOV, AVI, etc.)
+- Whisper.cpp executable detection and prioritization
+- Makefile extension replacement logic
 
 ## [1.0.0] - 2024-07-28
 

@@ -2,6 +2,38 @@
 
 ## 📝 Recent Updates (Latest)
 
+### 🔧 Output Filename Fixes and Makefile Improvements
+
+**Date:** December 2024  
+**Summary:** Fixed output filename handling for all video/audio formats and improved Makefile robustness
+
+#### Key Changes Made:
+
+1. **Fixed Makefile Output Filename Logic (`Makefile`)**
+   - ✅ Fixed output filename generation for all input formats (MP4, M4A, MOV, AVI, etc.)
+   - ✅ Replaced problematic `basename` and `suffix` functions with robust shell logic
+   - ✅ Ensured consistent `.txt` extension for all output files
+   - ✅ Added proper error handling for filename generation
+   - ✅ Improved Makefile maintainability and clarity
+
+2. **Enhanced Whisper.cpp Executable Detection (`src/transcriber.py`)**
+   - ✅ Fixed environment variable check to prioritize `whisper-cli` over deprecated `main`
+   - ✅ Improved executable path resolution for containerized environments
+   - ✅ Added fallback logic for different Whisper.cpp installations
+   - ✅ Enhanced error messages for better debugging
+
+3. **Updated Documentation (`README.md`)**
+   - ✅ Added troubleshooting section for output filename issues
+   - ✅ Updated project status to reflect recent fixes
+   - ✅ Enhanced examples to show correct output file naming
+   - ✅ Added clarification about supported input formats
+
+4. **Updated Changelog (`docs/CHANGELOG.md`)**
+   - ✅ Documented output filename fixes
+   - ✅ Added Makefile improvements
+   - ✅ Updated executable detection enhancements
+   - ✅ Tracked all recent bug fixes and improvements
+
 ### 🚀 Docker-First Setup Implementation
 
 **Date:** December 2024  
@@ -78,6 +110,14 @@
 - ✅ **Better User Experience**: One-command setup with clear feedback
 - ✅ **Consistent Environment**: Same setup across all platforms
 - ✅ **Reduced Support**: Fewer setup-related issues
+
+### Recent Fixes Impact:
+
+- ✅ **Universal Format Support**: All video/audio formats now produce correctly named output files
+- ✅ **Consistent Output**: No more confusing filenames with wrong extensions
+- ✅ **Better Error Handling**: Clearer error messages and debugging information
+- ✅ **Improved Maintainability**: Cleaner Makefile code and better structure
+- ✅ **Enhanced User Experience**: Predictable and intuitive output file naming
 
 ## 📊 Documentation Coverage
 

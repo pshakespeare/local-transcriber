@@ -1,6 +1,6 @@
 # Local Video Transcriber
 
-A containerized Python application for transcribing local video files using Whisper.cpp and FFmpeg. Get up and running in minutes with Docker - no complex setup required!
+Local Video Transcriber - Production-Ready AI Transcription Enterprise-grade video transcription using Whisper.cpp in Docker. Pre-built models, 99+ languages, multiple formats (TXT/SRT/VTT/JSON). No internet required, no API calls, complete privacy. Perfect for content creators, researchers, and privacy-conscious teams.
 
 ## 🚀 Quick Start (3 minutes)
 
@@ -219,6 +219,14 @@ chmod 755 input output temp
 make download-model MODEL=small
 ```
 
+### "Output filename issues"
+```bash
+# Fixed in latest version - output files now use correct .txt extension
+# regardless of input file type (mp4, m4a, mov, etc.)
+make transcribe VIDEO=your_file.m4a MODEL=base
+# Output: your_file.txt (not your_file.m4a)
+```
+
 ## 📚 Additional Resources
 
 - **Quick Reference**: `docs/QUICK_REFERENCE.md` - Command cheat sheet
@@ -234,6 +242,7 @@ make download-model MODEL=small
 - ✅ Base model pre-downloaded and ready to use
 - ✅ Transcription tested with real-world audio (37+ minutes)
 - ✅ Multiple output formats working (TXT, SRT, VTT, JSON)
+- ✅ Fixed output filename handling for all video/audio formats
 - ✅ Comprehensive documentation and examples
 - ✅ 40+ Makefile commands for easy automation
 - ✅ Ready for production use
