@@ -251,9 +251,6 @@ make transcribe VIDEO=your_file.m4a MODEL=base
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🤝 Contributing
-
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for contribution guidelines.
 
 ---
 

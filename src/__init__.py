@@ -8,11 +8,10 @@ __version__ = "1.0.0"
 __author__ = "Local Video Transcriber Team"
 __email__ = "support@local-transcriber.com"
 
-from .transcriber import VideoTranscriber
+# Import only what's needed for the package
 from .config import *
 
 __all__ = [
-    "VideoTranscriber",
     "SUPPORTED_FORMATS",
     "LANGUAGE_CODES",
     "WHISPER_MODELS",

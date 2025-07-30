@@ -128,11 +128,23 @@ class VideoTranscriber:
                 if os.path.isfile(expanded_path):
                     return expanded_path
                     
-            # If not found, provide helpful error message
-            raise FileNotFoundError(
-                f"Model '{model_name_or_path}' not found. Please download it using:\n"
-                f"cd whisper.cpp && ./models/download-ggml-model.sh {model_name_or_path}"
-            )
+            # If not found, try to download it automatically
+            self.console.print(f"[yellow]Model '{model_name_or_path}' not found. Attempting to download...[/yellow]")
+            try:
+                self._download_model(model_name_or_path)
+                # Check again after download
+                for path in possible_paths:
+                    expanded_path = os.path.expanduser(path)
+                    if os.path.isfile(expanded_path):
+                        self.console.print(f"[green]✓ Model '{model_name_or_path}' downloaded successfully![/green]")
+                        return expanded_path
+                raise FileNotFoundError(f"Failed to download model '{model_name_or_path}'")
+            except Exception as e:
+                raise FileNotFoundError(
+                    f"Model '{model_name_or_path}' not found and download failed: {str(e)}\n"
+                    f"Please download it manually using:\n"
+                    f"cd whisper.cpp && ./models/download-ggml-model.sh {model_name_or_path}"
+                )
         
         # If it's not a recognized model name, treat as file path
         if os.path.isfile(model_name_or_path):
@@ -142,6 +154,41 @@ class VideoTranscriber:
                 f"Model file not found: {model_name_or_path}\n"
                 f"Available models: {', '.join(config.WHISPER_MODELS.keys())}"
         )
+    
+    def _download_model(self, model_name: str) -> None:
+        """Download a Whisper model if it doesn't exist."""
+        if model_name not in config.WHISPER_MODELS:
+            raise ValueError(f"Unknown model: {model_name}")
+        
+        # Find Whisper.cpp directory
+        whisper_dir = os.environ.get('WHISPER_CPP_DIR', '/opt/whisper.cpp')
+        if not os.path.exists(whisper_dir):
+            # Try common paths
+            for path in ['/opt/whisper.cpp', './whisper.cpp', '~/whisper.cpp']:
+                expanded_path = os.path.expanduser(path)
+                if os.path.exists(expanded_path):
+                    whisper_dir = expanded_path
+                    break
+            else:
+                raise FileNotFoundError("Whisper.cpp directory not found")
+        
+        # Create models directory if it doesn't exist
+        models_dir = os.path.join(whisper_dir, 'models')
+        os.makedirs(models_dir, exist_ok=True)
+        
+        # Download the model
+        download_script = os.path.join(whisper_dir, 'models', 'download-ggml-model.sh')
+        if not os.path.exists(download_script):
+            raise FileNotFoundError(f"Download script not found: {download_script}")
+        
+        self.console.print(f"[blue]Downloading model '{model_name}'...[/blue]")
+        cmd = ['bash', download_script, model_name]
+        
+        try:
+            result = subprocess.run(cmd, cwd=whisper_dir, capture_output=True, text=True, check=True)
+            self.console.print(f"[green]✓ Model '{model_name}' downloaded successfully![/green]")
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Failed to download model '{model_name}': {e.stderr}")
     
     def _check_dependencies(self) -> None:
         """Check if required dependencies are available."""
@@ -365,14 +412,39 @@ def list_models():
     """Display available Whisper models."""
     table = Table(title="Available Whisper Models")
     table.add_column("Model", style="cyan", no_wrap=True)
+    table.add_column("Status", style="bold", no_wrap=True)
     table.add_column("Size", style="magenta")
     table.add_column("Speed", style="yellow")
     table.add_column("Accuracy", style="green")
     table.add_column("Description", style="white")
     
+    # Check which models are actually available
+    available_models = set()
+    whisper_dir = os.environ.get('WHISPER_CPP_DIR', '/opt/whisper.cpp')
+    
+    # Check common paths for models
+    possible_paths = [
+        os.path.join(whisper_dir, 'models'),
+        './whisper.cpp/models',
+        '~/whisper.cpp/models',
+        '/usr/local/whisper.cpp/models'
+    ]
+    
+    for path in possible_paths:
+        expanded_path = os.path.expanduser(path)
+        if os.path.exists(expanded_path):
+            for model_name in config.WHISPER_MODELS.keys():
+                model_file = os.path.join(expanded_path, f"ggml-{model_name}.bin")
+                if os.path.isfile(model_file):
+                    available_models.add(model_name)
+    
     for model_name, model_info in config.WHISPER_MODELS.items():
+        status = "✅ Available" if model_name in available_models else "❌ Not Downloaded"
+        status_style = "green" if model_name in available_models else "red"
+        
         table.add_row(
             model_name,
+            f"[{status_style}]{status}[/{status_style}]",
             model_info['size'],
             model_info['speed'],
             model_info['accuracy'],
@@ -383,6 +455,7 @@ def list_models():
     console.print("\n[bold]Usage:[/bold]")
     console.print("• Use model name: python3 -m src.transcriber transcribe -i video.mp4 -m base")
     console.print("• Use custom path: python3 -m src.transcriber transcribe -i video.mp4 -m /path/to/model.bin")
+    console.print("\n[bold]Note:[/bold] Models will be automatically downloaded if not available.")
 
 @click.group()
 def cli():
